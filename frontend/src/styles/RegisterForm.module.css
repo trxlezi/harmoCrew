@@ -82,7 +82,20 @@
 
 .tooltipWrapper {
   position: relative;
+  width: 108%;
+  display: flex;
+  align-items: center;
+}
+
+.tooltipWrapper .input{
   width: 100%;
+  padding: 0.85rem 2.5rem 0.85rem 1rem;
+  margin: 0.6rem 0;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  transition: box-shadow 0.3s ease;
 }
 
 .tooltipIcon {
