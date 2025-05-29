@@ -2,6 +2,8 @@ import React from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "./Navbar";
+import "../styles/global.css";
+import "../styles/colors.css";
 
 export default function Layout({ children }) {
   const location = useLocation();

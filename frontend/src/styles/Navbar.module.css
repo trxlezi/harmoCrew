@@ -1,22 +1,37 @@
 .navbar {
-    background-color: var(--primary);
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 2px solid var(--highlight);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-  
-  .navbar a {
-    color: var(--text-light);
-    text-decoration: none;
-    margin-left: 1.5rem;
-    font-weight: bold;
-    transition: color 0.3s ease;
-  }
-  
-  .navbar a:hover {
-    color: var(--highlight);
-  }
-  
+  display: flex;
+  justify-content: space-between;
+  background-color: #111;
+  padding: 1rem 2rem;
+  align-items: center;
+}
+
+.logo {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.buttonLike {
+  border: 1px solid white;
+  color: white;
+  background-color: transparent;
+  padding: 6px 12px;
+  border-radius: 20px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background-color 0.3s;
+  cursor: pointer;
+}
+
+.buttonLike:hover {
+  background-color: white;
+  color: #111;
+}
