@@ -9,6 +9,8 @@ import ProfilePage from './pages/ProfilePage';
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
+import CandidaturasPage from "./pages/CandidaturasPage";
+
 
 function App() {
   return (
@@ -21,6 +23,7 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/home" element={<PrivateRoute><HomePage /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+            <Route path="/candidaturas" element={<PrivateRoute><CandidaturasPage /></PrivateRoute>} />
           </Routes>
         </Layout>
       </AuthProvider>

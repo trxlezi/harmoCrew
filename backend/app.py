@@ -6,6 +6,9 @@ import jwt
 import datetime
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
+from db.init_db import init_db
+
+init_db()
 
 from db.database import get_connection
 
@@ -316,6 +319,85 @@ def search_users(current_user_email):
         usuarios = cursor.fetchall()
 
         return jsonify({"users": usuarios})
+    except mysql.connector.Error as err:
+        return jsonify({"message": "Erro no banco de dados.", "error": str(err)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route("/candidaturas_recebidas", methods=["GET"])
+@token_required
+def candidaturas_recebidas(current_user_email):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("SELECT id FROM users WHERE email = %s", (current_user_email,))
+        user = cursor.fetchone()
+        if not user:
+            return jsonify({"message": "Usuário não encontrado."}), 404
+
+        user_id = user['id']
+
+        query = """
+        SELECT c.id AS candidatura_id, c.post_id, c.user_id AS candidato_id,
+               u.nome AS nome_candidato, u.email AS email_candidato,
+               p.texto AS texto_post, c.data AS data_candidatura, c.status
+        FROM candidaturas c
+        JOIN posts p ON c.post_id = p.id
+        JOIN users u ON c.user_id = u.id
+        WHERE p.user_id = %s
+        ORDER BY c.data DESC
+        """
+        cursor.execute(query, (user_id,))
+        candidaturas = cursor.fetchall()
+
+        return jsonify({"candidaturas": candidaturas})
+
+    except mysql.connector.Error as err:
+        return jsonify({"message": "Erro no banco de dados.", "error": str(err)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.route("/candidaturas/<int:candidatura_id>/<acao>", methods=["POST"])
+@token_required
+def atualizar_candidatura_status(current_user_email, candidatura_id, acao):
+    if acao not in ("aceitar", "rejeitar"):
+        return jsonify({"message": "Ação inválida."}), 400
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("SELECT id FROM users WHERE email = %s", (current_user_email,))
+        user = cursor.fetchone()
+        if not user:
+            return jsonify({"message": "Usuário não encontrado."}), 404
+
+        user_id = user['id']
+
+        cursor.execute("""
+            SELECT c.*, p.user_id AS dono_post_id
+            FROM candidaturas c
+            JOIN posts p ON c.post_id = p.id
+            WHERE c.id = %s
+        """, (candidatura_id,))
+        candidatura = cursor.fetchone()
+
+        if not candidatura:
+            return jsonify({"message": "Candidatura não encontrada."}), 404
+
+        if candidatura['dono_post_id'] != user_id:
+            return jsonify({"message": "Você não tem permissão para alterar esta candidatura."}), 403
+
+        novo_status = "aceito" if acao == "aceitar" else "rejeitado"
+        cursor.execute("UPDATE candidaturas SET status = %s WHERE id = %s", (novo_status, candidatura_id))
+        conn.commit()
+
+        return jsonify({"message": f"Candidatura {novo_status} com sucesso."})
+
     except mysql.connector.Error as err:
         return jsonify({"message": "Erro no banco de dados.", "error": str(err)}), 500
     finally:

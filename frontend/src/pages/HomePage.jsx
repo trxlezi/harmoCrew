@@ -3,6 +3,7 @@ import styles from "../styles/HomePage.module.css";
 import { useAuth } from "../context/AuthContext";
 import "../styles/global.css";
 import "../styles/colors.css";
+import { Link } from "react-router-dom";
 
 const HomePage = () => {
   const { token, user, logout } = useAuth();
@@ -102,7 +103,6 @@ const HomePage = () => {
 
   return (
     <div className={styles.wrapper}>
-      {/* Sidebar esquerda */}
       <aside className={styles.sidebarLeft}>
         <nav>
           <ul>
@@ -137,25 +137,26 @@ const HomePage = () => {
         )}
       </main>
 
-      <aside className={styles.sidebarRight}>
-        <input
-          className={styles.search}
-          type="text"
-          placeholder="Buscar artistas..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        {searchResults.length > 0 && (
-          <div className={styles.searchResults}>
-            {searchResults.map((u) => (
-              <div key={u.id} className={styles.searchResultItem}>
-                <strong>{u.nome}</strong>
-                <p>{u.email}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </aside>
+<aside className={styles.sidebarRight}>
+  <input
+    className={styles.search}
+    type="text"
+    placeholder="Buscar artistas..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+  />
+  {searchResults.length > 0 && (
+    <div className={styles.searchResults}>
+      {searchResults.map((u) => (
+        <Link key={u.id} to={`/usuario/${u.id}`} className={styles.searchResultItem}>
+          <strong>{u.nome}</strong>
+          <p>{u.email}</p>
+        </Link>
+      ))}
+    </div>
+  )}
+</aside>
+
 
       {selectedPost && (
         <div className={styles.overlay} onClick={() => setSelectedPost(null)}>

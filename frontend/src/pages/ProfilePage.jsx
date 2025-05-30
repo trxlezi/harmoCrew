@@ -1,49 +1,70 @@
 import React, { useEffect, useState } from 'react';
 import styles from '../styles/ProfilePage.module.css';
 import { useAuth } from '../context/AuthContext';
+import { useParams } from 'react-router-dom';
 import "../styles/global.css";
 import "../styles/colors.css";
 
 export default function ProfilePage() {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('projetos');
+  const { user: loggedUser } = useAuth();
+  const { id } = useParams();
+  const [user, setUser] = useState(null);
   const [projects, setProjects] = useState([]);
   const [amigos, setAmigos] = useState([]);
+  const [activeTab, setActiveTab] = useState('projetos');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    fetch('http://localhost:5000/posts', {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.posts) {
-          const userProjects = data.posts.filter(post => post.user_id === user.id);
-          setProjects(userProjects);
+    if (id) {
+      fetch(`http://localhost:5000/user/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
         }
-      });
-
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.user) {
+            setUser(data.user);
+            fetch('http://localhost:5000/posts', {
+              headers: { Authorization: `Bearer ${token}` }
+            })
+              .then(res => res.json())
+              .then(data => {
+                const userProjects = data.posts.filter(post => post.user_id === data.user.id);
+                setProjects(userProjects);
+              });
+          }
+        });
+    } else {
+      setUser(loggedUser);
+      fetch('http://localhost:5000/posts', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          const userProjects = data.posts.filter(post => post.user_id === loggedUser.id);
+          setProjects(userProjects);
+        });
+    }
 
     setAmigos([
-        { id: 1, nome: "Lucas", foto: "https://i.pravatar.cc/150?u=lucas" },
-        { id: 2, nome: "Ana", foto: "https://i.pravatar.cc/150?u=ana" }
-      ]);
-  }, [user]);
+      { id: 1, nome: "Lucas", foto: "https://i.pravatar.cc/150?u=lucas" },
+      { id: 2, nome: "Ana", foto: "https://i.pravatar.cc/150?u=ana" }
+    ]);
+  }, [id, loggedUser]);
+
+  if (!user) return <p>Carregando perfil...</p>;
 
   return (
     <div className={styles.container}>
       <div className={styles.profileSidebar}>
-      <img
-  className={styles.userPhoto}
-  src={`https://i.pravatar.cc/150?u=${user.id}`}
-  alt="Foto de perfil"
-/>
+        <img className={styles.userPhoto} src={`https://i.pravatar.cc/150?u=${user.id}`} alt="Foto de perfil" />
         <h2>{user.nome}</h2>
-        <button className={styles.followButton}>Seguir</button>
+        {id && parseInt(id) !== loggedUser.id && (
+          <button className={styles.followButton}>Seguir</button>
+        )}
         <p className={styles.description}>
           Este é um exemplo de descrição do usuário. Você pode atualizar sua bio mais tarde.
         </p>
@@ -51,16 +72,10 @@ export default function ProfilePage() {
 
       <div className={styles.profileContent}>
         <div className={styles.tabs}>
-          <button
-            className={activeTab === 'projetos' ? styles.activeTab : ''}
-            onClick={() => setActiveTab('projetos')}
-          >
+          <button className={activeTab === 'projetos' ? styles.activeTab : ''} onClick={() => setActiveTab('projetos')}>
             Projetos
           </button>
-          <button
-            className={activeTab === 'amigos' ? styles.activeTab : ''}
-            onClick={() => setActiveTab('amigos')}
-          >
+          <button className={activeTab === 'amigos' ? styles.activeTab : ''} onClick={() => setActiveTab('amigos')}>
             Amigos
           </button>
         </div>
@@ -68,7 +83,7 @@ export default function ProfilePage() {
         {activeTab === 'projetos' && (
           <div className={styles.projects}>
             {projects.length === 0 ? (
-              <p>Você ainda não criou nenhum projeto.</p>
+              <p>Este usuário ainda não criou projetos.</p>
             ) : (
               projects.map(post => (
                 <div key={post.id} className={styles.projectCard}>
