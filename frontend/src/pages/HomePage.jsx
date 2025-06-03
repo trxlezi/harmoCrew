@@ -137,7 +137,7 @@ const HomePage = () => {
         )}
       </main>
 
-<aside className={styles.sidebarRight}>
+      <aside className={styles.sidebarRight}>
   <input
     className={styles.search}
     type="text"
@@ -145,10 +145,15 @@ const HomePage = () => {
     value={searchTerm}
     onChange={(e) => setSearchTerm(e.target.value)}
   />
+  
   {searchResults.length > 0 && (
     <div className={styles.searchResults}>
       {searchResults.map((u) => (
-        <Link key={u.id} to={`/usuario/${u.id}`} className={styles.searchResultItem}>
+        <Link
+          key={u.id}
+          to={`/usuario/${u.id}`}
+          className={styles.searchResultItem}
+        >
           <strong>{u.nome}</strong>
           <p>{u.email}</p>
         </Link>
@@ -156,6 +161,7 @@ const HomePage = () => {
     </div>
   )}
 </aside>
+
 
 
       {selectedPost && (

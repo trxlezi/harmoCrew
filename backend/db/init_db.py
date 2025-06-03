@@ -3,7 +3,7 @@ from mysql.connector import errorcode
 
 config = {
     'user': 'root',
-    'password': 'senha123',
+    'password': '',
     'host': 'localhost'
 }
 
@@ -40,6 +40,18 @@ TABLES['candidaturas'] = (
     "  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,"
     "  UNIQUE KEY unique_candidate (user_id, post_id)"
     ") ENGINE=InnoDB"
+)
+
+TABLES['seguidores'] = (
+    "CREATE TABLE IF NOT EXISTS seguidores ("
+    " id INT AUTO_INCREMENT PRIMARY KEY,"
+    " seguidor_id INT NOT NULL,"
+    " seguido_id INT NOT NULL,"
+    " criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,"
+    " UNIQUE(seguidor_id, seguido_id),"
+    " FOREIGN KEY (seguidor_id) REFERENCES users(id),"
+    " FOREIGN KEY (seguido_id) REFERENCES users(id)"
+") ENGINE=InnoDB;"
 )
 
 def init_db():

@@ -404,6 +404,117 @@ def atualizar_candidatura_status(current_user_email, candidatura_id, acao):
         cursor.close()
         conn.close()
 
+@app.route("/user/<int:user_id>", methods=["GET"])
+@token_required
+def get_user_by_id(current_user_email, user_id):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("SELECT id, nome, email FROM users WHERE id = %s", (user_id,))
+        user = cursor.fetchone()
+
+        if not user:
+            return jsonify({"message": "Usuário não encontrado."}), 404
+
+        return jsonify({"user": user})
+
+    except mysql.connector.Error as err:
+        return jsonify({"message": "Erro no banco de dados.", "error": str(err)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route("/follow/<int:user_id>", methods=["POST"])
+@token_required
+def follow_user(current_user_email, user_id):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT id FROM users WHERE email = %s", (current_user_email,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"message": "Usuário não encontrado."}), 404
+        follower_id = row[0]
+
+        if follower_id == user_id:
+            return jsonify({"message": "Você não pode seguir a si mesmo."}), 400
+
+        try:
+            cursor.execute(
+                "INSERT INTO seguidores (seguidor_id, seguido_id) VALUES (%s, %s)",
+                (follower_id, user_id)
+            )
+            conn.commit()
+        except mysql.connector.IntegrityError as e:
+            if e.errno == 1062:
+                return jsonify({"message": "Você já está seguindo este usuário."}), 400
+            else:
+                raise e
+
+        return jsonify({"message": "Seguindo usuário com sucesso!"})
+
+    except mysql.connector.Error as err:
+        return jsonify({"message": "Erro ao seguir usuário.", "error": str(err)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route("/followers/<int:user_id>", methods=["GET"])
+@token_required
+def get_followers(current_user_email, user_id):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT u.id, u.nome, u.email
+            FROM seguidores s
+            JOIN users u ON s.seguidor_id = u.id
+            WHERE s.seguido_id = %s
+        """, (user_id,))
+        followers = cursor.fetchall()
+
+        return jsonify({"followers": followers})
+
+    except mysql.connector.Error as err:
+        return jsonify({"message": "Erro ao buscar seguidores.", "error": str(err)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/unfollow/<int:user_id>', methods=['POST'])
+@token_required
+def unfollow(current_user_email, user_id):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM users WHERE email = %s", (current_user_email,))
+        current_user = cursor.fetchone()
+        if not current_user:
+            return jsonify({"message": "Usuário não encontrado."}), 404
+
+        current_user_id = current_user[0]
+
+        cursor.execute("""
+            SELECT 1 FROM seguidores WHERE seguidor_id = %s AND seguido_id = %s
+        """, (current_user_id, user_id))
+        if not cursor.fetchone():
+            return jsonify({"message": "Você não está seguindo este usuário."}), 400
+
+        cursor.execute("""
+            DELETE FROM seguidores WHERE seguidor_id = %s AND seguido_id = %s
+        """, (current_user_id, user_id))
+        conn.commit()
+
+        return jsonify({"message": "Deixou de seguir o usuário com sucesso!"}), 200
+
+    except mysql.connector.Error as err:
+        return jsonify({"message": "Erro ao deixar de seguir o usuário.", "error": str(err)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 if __name__ == "__main__":
     app.run(debug=True)
