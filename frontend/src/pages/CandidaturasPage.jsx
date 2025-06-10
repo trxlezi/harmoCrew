@@ -1,169 +1,219 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import styles from "../styles/CandidaturasPage.module.css"; 
-import { Link } from "react-router-dom";
+import styles from "../styles/CandidaturasPage.module.css";
 
 const CandidaturasPage = () => {
   const { token, logout } = useAuth();
-  const [candidaturasAgrupadas, setCandidaturasAgrupadas] = useState({});
-  const [projetosExpandidos, setProjetosExpandidos] = useState({});
-  const [loading, setLoading] = useState(true);
-
-  const fetchCandidaturas = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("http://localhost:5000/candidaturas_recebidas", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-
-      if (res.ok) {
-        const agrupadas = (data.candidaturas || []).reduce((acc, cand) => {
-          const { post_id, titulo_post } = cand;
-          if (!acc[post_id]) {
-            acc[post_id] = {
-              titulo: titulo_post,
-              candidatos: [],
-            };
-          }
-          acc[post_id].candidatos.push(cand);
-          return acc;
-        }, {});
-        setCandidaturasAgrupadas(agrupadas);
-      } else {
-        alert(data.message || "Erro ao buscar candidaturas.");
-        if (res.status === 401) logout();
-      }
-    } catch (error) {
-      alert("Erro ao conectar com o servidor.");
-      console.error("Fetch error:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [token, logout]);
+  const [candidaturas, setCandidaturas] = useState([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedCandidatura, setSelectedCandidatura] = useState(null);
+  const [aprovados, setAprovados] = useState({});
 
   useEffect(() => {
-    fetchCandidaturas();
-  }, [fetchCandidaturas]);
+    const fetchCandidaturas = async () => {
+      try {
+        const res = await fetch(
+          "http://localhost:5000/candidaturas_recebidas",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const data = await res.json();
+        if (res.ok) {
+          setCandidaturas(data.candidaturas);
+          const aprovadosInit = {};
+          data.candidaturas.forEach((c) => {
+            if (c.status === "aceitar") {
+              if (!aprovadosInit[c.post_id]) aprovadosInit[c.post_id] = [];
+              aprovadosInit[c.post_id].push(c);
+            }
+          });
 
-  const toggleProjeto = (postId) => {
-    setProjetosExpandidos((prev) => ({
-      ...prev,
-      [postId]: !prev[postId],
-    }));
+          setAprovados(aprovadosInit);
+        } else {
+          alert(data.message || "Erro ao buscar candidaturas.");
+          if (res.status === 401) logout();
+        }
+      } catch {
+        alert("Erro ao conectar com o servidor.");
+      }
+    };
+    fetchCandidaturas();
+  }, [token, logout]);
+
+  const abrirModal = (candidatura) => {
+    setSelectedCandidatura(candidatura);
+    setModalOpen(true);
   };
 
-  const handleAtualizarStatus = async (candidaturaId, postId, acao, e) => {
-    e.stopPropagation();
+  const fecharModal = () => {
+    setSelectedCandidatura(null);
+    setModalOpen(false);
+  };
+
+  const atualizarStatus = async (acao) => {
+    if (!selectedCandidatura) return;
+
     try {
       const res = await fetch(
-        `http://localhost:5000/candidaturas/${candidaturaId}/${acao}`,
+        `http://localhost:5000/candidaturas/${selectedCandidatura.candidatura_id}/${acao}`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
         }
       );
       const data = await res.json();
-
       if (res.ok) {
-        setCandidaturasAgrupadas((prev) => {
-          const novosAgrupados = { ...prev };
-          const candidatosDoPost = novosAgrupados[postId].candidatos.map(
-            (c) => {
-              if (c.candidatura_id === candidaturaId) {
-                return { ...c, status: acao === 'aceitar' ? 'aceito' : 'rejeitado' };
-              }
-              return c;
-            }
-          );
-          novosAgrupados[postId].candidatos = candidatosDoPost;
-          return novosAgrupados;
-        });
         alert(data.message);
+        setCandidaturas((prev) =>
+          prev.map((c) =>
+            c.candidatura_id === selectedCandidatura.candidatura_id
+              ? { ...c, status: acao }
+              : c
+          )
+        );
+
+        if (acao === "aceitar") {
+          setAprovados((prev) => {
+            const postId = selectedCandidatura.post_id;
+            const novosAprovados = prev[postId] ? [...prev[postId]] : [];
+            // Evita duplicar
+            if (
+              !novosAprovados.find(
+                (c) => c.candidatura_id === selectedCandidatura.candidatura_id
+              )
+            ) {
+              novosAprovados.push({
+                ...selectedCandidatura,
+                status: "aceitar",
+              });
+            }
+            return { ...prev, [postId]: novosAprovados };
+          });
+        } else if (acao === "rejeitar") {
+          setAprovados((prev) => {
+            const postId = selectedCandidatura.post_id;
+            if (!prev[postId]) return prev;
+            return {
+              ...prev,
+              [postId]: prev[postId].filter(
+                (c) => c.candidatura_id !== selectedCandidatura.candidatura_id
+              ),
+            };
+          });
+        }
+
+        fecharModal();
       } else {
-        alert(data.message || `Erro ao ${acao} candidatura.`);
+        alert(data.message || "Erro ao atualizar status.");
         if (res.status === 401) logout();
       }
-    } catch (error) {
-      alert("Erro de conexão ao atualizar status.");
-      console.error("Update status error:", error);
+    } catch {
+      alert("Erro ao conectar com o servidor.");
     }
   };
 
   return (
-    <div className={styles.pageWrapper}>
-      {}
-      <div className={styles.leftColumn}>
-        <h1 className={styles.pageTitle}>Candidaturas</h1>
-      </div>
+    <div className={styles.container}>
+      <h2>Candidaturas Recebidas</h2>
 
-      {}
-      <div className={styles.rightColumn}>
-        {loading ? (
-          <div className={styles.loading}>Carregando...</div>
-        ) : Object.keys(candidaturasAgrupadas).length === 0 ? (
-          <p className={styles.noCandidaturas}>Nenhuma candidatura recebida ainda.</p>
-        ) : (
-          Object.entries(candidaturasAgrupadas).map(([postId, projeto]) => (
-            <div key={postId} className={styles.projetoContainer}>
-              <div
-                className={styles.projetoHeader}
-                onClick={() => toggleProjeto(postId)}
-              >
-                <h3>{projeto.titulo}</h3>
-                <span className={styles.toggleIcon}>{projetosExpandidos[postId] ? "▲" : "▼"}</span>
-              </div>
-
-              {projetosExpandidos[postId] && (
-                <div className={styles.candidatosList}>
-                  {projeto.candidatos.map((c) => (
-                    <div key={c.candidatura_id} className={`${styles.candidatoCard} ${styles[c.status]}`}>
-                      <img
-                        src={c.candidato_profile_pic_url || 'https://i.pravatar.cc/40'}
-                        alt={c.nome_candidato}
-                        className={styles.candidatoAvatar}
-                      />
-                      <div className={styles.candidatoInfo}>
-                        <span className={styles.candidatoNome}>{c.nome_candidato}</span>
-                        <a
-                          href={c.link_portfolio || '#'}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={styles.candidatoPortfolio}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          link.portfolio.exemplo
-                        </a>
-                      </div>
-                      <div className={styles.actions}>
-                        {c.status !== 'aceito' && (
-                          <button
-                            className={`${styles.actionButton} ${styles.accept}`}
-                            onClick={(e) => handleAtualizarStatus(c.candidatura_id, postId, 'aceitar', e)}
-                            title="Aceitar"
-                          >
-                            +
-                          </button>
-                        )}
-                        {c.status !== 'rejeitado' && (
-                          <button
-                            className={`${styles.actionButton} ${styles.reject}`}
-                            onClick={(e) => handleAtualizarStatus(c.candidatura_id, postId, 'rejeitar', e)}
-                            title="Recusar"
-                          >
-                            &#x2715;
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  <button className={styles.confirmButton}>Confirmar Seleção</button>
-                </div>
-              )}
+      {candidaturas.length === 0 ? (
+        <p>Nenhuma candidatura recebida ainda.</p>
+      ) : (
+        <>
+          {candidaturas.map((c) => (
+            <div
+              key={c.candidatura_id}
+              className={styles.card}
+              onClick={() => abrirModal(c)}
+              style={{ cursor: "pointer" }}
+            >
+              <p>
+                <strong>Projeto:</strong> {c.texto_post}
+              </p>
+              <p>
+                <strong>Artista:</strong> {c.nome_candidato} (
+                {c.email_candidato})
+              </p>
+              <p>
+                <strong>Data:</strong>{" "}
+                {new Date(c.data_candidatura).toLocaleString()}
+              </p>
+              <p>
+                <strong>Status:</strong> {c.status || "Pendente"}
+              </p>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+
+          <h3>Candidatos Aprovados</h3>
+{Object.entries(aprovados).length === 0 ? (
+  <p>Nenhum candidato aprovado ainda.</p>
+) : (
+  Object.entries(aprovados).map(([postId, aprovadosDoPost]) => (
+    <div key={postId} className={styles.aprovadosContainer}>
+      <h4>Projeto: {aprovadosDoPost[0]?.texto_post || `ID ${postId}`}</h4>
+      <ul>
+        {aprovadosDoPost.map((ap) => (
+          <li key={ap.candidatura_id}>
+            {ap.nome_candidato} ({ap.email_candidato}) — Candidatura aceita em{" "}
+            {new Date(ap.data_candidatura).toLocaleString()}
+          </li>
+        ))}
+      </ul>
+    </div>
+  ))
+)}
+
+
+          {modalOpen && selectedCandidatura && (
+            <div className={styles.modalOverlay} onClick={fecharModal}>
+              <div
+                className={styles.modalContent}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3>Detalhes da Candidatura</h3>
+                <p>
+                  <strong>Projeto:</strong> {selectedCandidatura.texto_post}
+                </p>
+                <p>
+                  <strong>Artista:</strong> {selectedCandidatura.nome_candidato}{" "}
+                  ({selectedCandidatura.email_candidato})
+                </p>
+                <p>
+                  <strong>Data:</strong>{" "}
+                  {new Date(
+                    selectedCandidatura.data_candidatura
+                  ).toLocaleString()}
+                </p>
+                <p>
+                  <strong>Status:</strong>{" "}
+                  {selectedCandidatura.status || "Pendente"}
+                </p>
+
+                <div className={styles.buttons}>
+                  {selectedCandidatura.status !== "aceitar" && (
+                    <button
+                      className={styles.acceptButton}
+                      onClick={() => atualizarStatus("aceitar")}
+                    >
+                      Aceitar
+                    </button>
+                  )}
+                  {selectedCandidatura.status !== "rejeitar" && (
+                    <button
+                      className={styles.rejectButton}
+                      onClick={() => atualizarStatus("rejeitar")}
+                    >
+                      Rejeitar
+                    </button>
+                  )}
+                  <button onClick={fecharModal}>Fechar</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };
