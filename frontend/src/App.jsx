@@ -11,6 +11,8 @@ import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
 import CandidaturasPage from "./pages/CandidaturasPage";
 import UserProfile from './components/UserProfile';
+import ChatPage from './pages/ChatPage';
+import ChatWidget from './components/ChatWidget';
 
 function App() {
   return (
@@ -25,7 +27,9 @@ function App() {
             <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
             <Route path="/candidaturas" element={<PrivateRoute><CandidaturasPage /></PrivateRoute>} />
             <Route path="/usuario/:id" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
+            <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
           </Routes>
+          <ChatWidget />
         </Layout>
       </AuthProvider>
     </Router>

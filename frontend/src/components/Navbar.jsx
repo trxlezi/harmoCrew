@@ -26,6 +26,7 @@ export default function Navbar() {
         <ul className={styles.mainNavList}>
           <li><Link to="/candidaturas" className={styles.navButtonStyled}>Candidaturas</Link></li>
           <li><Link to="/home" className={styles.navButtonStyled}>Página Inicial</Link></li>
+          <li><Link to="/chat" className={styles.navButtonStyled}>Chat</Link></li>
           <li>
             <button onClick={handleAnunciarClick} className={styles.navButtonStyledAnunciar}>Anunciar</button>
           </li>

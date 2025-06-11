@@ -16,6 +16,7 @@ TABLES['users'] = (
     "  nome VARCHAR(255) NOT NULL,"
     "  email VARCHAR(255) NOT NULL UNIQUE,"
     "  senha VARCHAR(255) NOT NULL,"
+    "  profile_pic_url VARCHAR(255) DEFAULT NULL,"
     "  last_login TIMESTAMP"
     ") ENGINE=InnoDB"
 )
@@ -24,7 +25,9 @@ TABLES['posts'] = (
     "CREATE TABLE IF NOT EXISTS posts ("
     "  id INT AUTO_INCREMENT PRIMARY KEY,"
     "  user_id INT NOT NULL,"
+    "  titulo VARCHAR(255) NOT NULL,"
     "  texto TEXT NOT NULL,"
+    "  audio_url VARCHAR(255) DEFAULT NULL,"
     "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
     "  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
     "  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
@@ -68,6 +71,17 @@ TABLES['audit_log'] = (
     ") ENGINE=InnoDB;"
 )
 
+TABLES['messages'] = (
+    "CREATE TABLE IF NOT EXISTS messages ("
+    " id INT AUTO_INCREMENT PRIMARY KEY,"
+    " sender_id INT,"
+    " receiver_id INT,"
+    " content TEXT,"
+    " timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,"
+    " FOREIGN KEY (sender_id) REFERENCES users(id),"
+    " FOREIGN KEY (receiver_id) REFERENCES users(id)"
+") ENGINE=InnoDB;"
+)
 def get_connection():
     try:
         return mysql.connector.connect(
@@ -105,7 +119,9 @@ def init_db():
                 CREATE OR REPLACE VIEW UserPostsView AS
                 SELECT
                     p.id AS post_id,
+                    p.titulo,
                     p.texto,
+                    p.audio_url,
                     p.created_at,
                     p.updated_at,
                     u.id AS user_id,
@@ -234,24 +250,23 @@ def init_db():
 
         store_procedures = {
             'CreateNewUser': """
-                DELIMITER //
-                CREATE PROCEDURE CreateNewUser(
+                CREATE PROCEDURE IF NOT EXISTS CreateNewUser(
                     IN p_nome VARCHAR(255),
                     IN p_email VARCHAR(255),
                     IN p_senha_hash VARCHAR(255)
                 )
                 BEGIN
                     INSERT INTO users (nome, email, senha) VALUES (p_nome, p_email, p_senha_hash);
-                END //
-                DELIMITER ;
+                END
             """,
             'GetUserPosts': """
-                DELIMITER //
-                CREATE PROCEDURE GetUserPosts(IN p_user_id INT)
+                CREATE PROCEDURE IF NOT EXISTS GetUserPosts(IN p_user_id INT)
                 BEGIN
-                    SELECT id, texto, created_at, updated_at FROM posts WHERE user_id = p_user_id ORDER BY created_at DESC;
-                END //
-                DELIMITER ;
+                    SELECT id, titulo, texto, audio_url, created_at, updated_at, user_id
+                    FROM posts
+                    WHERE user_id = p_user_id
+                    ORDER BY created_at DESC;
+                END
             """,
             'GetPendingCandidaciesForPostOwner': """
                 DELIMITER //
@@ -285,7 +300,8 @@ def init_db():
         for sp_name, sp_sql in store_procedures.items():
             try:
                 cursor.execute(f"DROP PROCEDURE IF EXISTS {sp_name};")
-                cursor.execute(sp_sql)
+                for stmt in [s for s in sp_sql.split(';') if s.strip()]:
+                    cursor.execute(stmt)
             except mysql.connector.Error as err:
                 pass
 

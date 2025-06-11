@@ -10,6 +10,34 @@ const LinkIcon = () => <span style={{ marginRight: '8px', color: 'var(--accent-b
 const MusicIcon = () => <span style={{ marginRight: '8px' }}>🎵</span>;
 const PeopleIcon = () => <span style={{ marginRight: '8px' }}>👥</span>;
 
+// Modal de detalhes do projeto
+function ProjectModal({ project, onClose }) {
+  if (!project) return null;
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+      background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }} onClick={onClose}>
+      <div style={{
+        background: '#23232b', borderRadius: 12, padding: '2rem', minWidth: 320, maxWidth: 500, width: '90%',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5)', position: 'relative', color: '#fff'
+      }} onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer' }} title="Fechar">×</button>
+        <h2 style={{ marginBottom: 8 }}>{project.titulo || 'Projeto sem título'}</h2>
+        <p style={{ marginBottom: 16, color: '#ccc' }}>{project.texto || 'Sem descrição.'}</p>
+        {project.audio_url && (
+          <audio controls src={project.audio_url} style={{ width: '100%', marginBottom: 16, borderRadius: 8 }}>
+            Seu navegador não suporta o elemento de áudio.
+          </audio>
+        )}
+        <div style={{ fontSize: 14, color: '#aaa', marginTop: 12 }}>
+          Publicado em: {new Date(project.created_at || project.data_criacao || project.data || Date.now()).toLocaleDateString('pt-BR')}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const { user: loggedUser, token, logout } = useAuth();
   const { id: profileIdFromParams } = useParams();
@@ -29,6 +57,8 @@ export default function ProfilePage() {
   const [novaDescricao, setNovaDescricao] = useState("");
   const [editingLinks, setEditingLinks] = useState(false);
   const [novosLinks, setNovosLinks] = useState("");
+
+  const [selectedProject, setSelectedProject] = useState(null);
 
   const userIdToFetch = profileIdFromParams ? parseInt(profileIdFromParams) : loggedUser?.id;
 
@@ -298,10 +328,14 @@ export default function ProfilePage() {
             <div className={styles.postsGrid}>
               {userPosts.length > 0 ? userPosts.map(post => (
                 <div key={post.id} className={styles.postCard}>
-                  <Link to={`/post/${post.id}`} className={styles.postCardLinkWrapper}>
+                  <div
+                    className={styles.postCardLinkWrapper}
+                    onClick={() => setSelectedProject(post)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <h5 className={styles.postCardTitle}>{post.titulo || "Projeto sem título"}</h5>
                     <p className={styles.postCardDescription}>{post.texto ? (post.texto.substring(0, 100) + (post.texto.length > 100 ? '...' : '')) : "Sem descrição."}</p>
-                  </Link>
+                  </div>
                   {post.audio_url && (
                     <audio controls src={post.audio_url} className={styles.postCardAudioPlayer}>
                       Seu navegador não suporta o elemento de áudio.
@@ -336,6 +370,9 @@ export default function ProfilePage() {
           )}
         </div>
       </main>
+      {selectedProject && (
+        <ProjectModal project={selectedProject} onClose={() => setSelectedProject(null)} />
+      )}
     </div>
   );
 }
