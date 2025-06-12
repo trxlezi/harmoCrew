@@ -249,61 +249,60 @@ def init_db():
                 pass
 
         store_procedures = {
-            'CreateNewUser': """
-                CREATE PROCEDURE IF NOT EXISTS CreateNewUser(
-                    IN p_nome VARCHAR(255),
-                    IN p_email VARCHAR(255),
-                    IN p_senha_hash VARCHAR(255)
-                )
-                BEGIN
-                    INSERT INTO users (nome, email, senha) VALUES (p_nome, p_email, p_senha_hash);
-                END
-            """,
-            'GetUserPosts': """
-                CREATE PROCEDURE IF NOT EXISTS GetUserPosts(IN p_user_id INT)
-                BEGIN
-                    SELECT id, titulo, texto, audio_url, created_at, updated_at, user_id
-                    FROM posts
-                    WHERE user_id = p_user_id
-                    ORDER BY created_at DESC;
-                END
-            """,
-            'GetPendingCandidaciesForPostOwner': """
-                DELIMITER //
-                CREATE PROCEDURE GetPendingCandidaciesForPostOwner(IN p_owner_user_id INT)
-                BEGIN
-                    SELECT
-                        c.id AS candidatura_id,
-                        c.data AS data_candidatura,
-                        u_cand.nome AS candidato_nome,
-                        p.texto AS post_texto
-                    FROM candidaturas c
-                    JOIN users u_cand ON c.user_id = u_cand.id
-                    JOIN posts p ON c.post_id = p.id
-                    WHERE p.user_id = p_owner_user_id AND c.status = 'pendente'
-                    ORDER BY c.data DESC;
-                END //
-                DELIMITER ;
-            """,
-            'UpdateCandidacyStatus': """
-                DELIMITER //
-                CREATE PROCEDURE UpdateCandidacyStatus(
-                    IN p_candidatura_id INT,
-                    IN p_new_status VARCHAR(20)
-                )
-                BEGIN
-                    UPDATE candidaturas SET status = p_new_status WHERE id = p_candidatura_id;
-                END //
-                DELIMITER ;
-            """
-        }
+    'CreateNewUser': """
+        CREATE PROCEDURE CreateNewUser(
+            IN p_nome VARCHAR(255),
+            IN p_email VARCHAR(255),
+            IN p_senha_hash VARCHAR(255)
+        )
+        BEGIN
+            INSERT INTO users (nome, email, senha) VALUES (p_nome, p_email, p_senha_hash);
+        END
+    """,
+    'GetUserPosts': """
+        CREATE PROCEDURE GetUserPosts(IN p_user_id INT)
+        BEGIN
+            SELECT id, titulo, texto, audio_url, created_at, updated_at, user_id
+            FROM posts
+            WHERE user_id = p_user_id
+            ORDER BY created_at DESC;
+        END
+    """,
+    'GetPendingCandidaciesForPostOwner': """
+        CREATE PROCEDURE GetPendingCandidaciesForPostOwner(IN p_owner_user_id INT)
+        BEGIN
+            SELECT
+                c.id AS candidatura_id,
+                c.data AS data_candidatura,
+                u_cand.nome AS candidato_nome,
+                p.texto AS post_texto
+            FROM candidaturas c
+            JOIN users u_cand ON c.user_id = u_cand.id
+            JOIN posts p ON c.post_id = p.id
+            WHERE p.user_id = p_owner_user_id AND c.status = 'pendente'
+            ORDER BY c.data DESC;
+        END
+    """,
+    'UpdateCandidacyStatus': """
+        CREATE PROCEDURE UpdateCandidacyStatus(
+            IN p_candidatura_id INT,
+            IN p_new_status VARCHAR(20)
+        )
+        BEGIN
+            UPDATE candidaturas SET status = p_new_status WHERE id = p_candidatura_id;
+        END
+    """
+}
+
         for sp_name, sp_sql in store_procedures.items():
             try:
                 cursor.execute(f"DROP PROCEDURE IF EXISTS {sp_name};")
-                for stmt in [s for s in sp_sql.split(';') if s.strip()]:
-                    cursor.execute(stmt)
+                cursor.execute(sp_sql)
             except mysql.connector.Error as err:
                 pass
+            
+    except mysql.connector.Error as err:
+        print(f"Erro ao criar procedure {sp_name}: {err}")
 
         functions = {
             'GetUserPostCount': """

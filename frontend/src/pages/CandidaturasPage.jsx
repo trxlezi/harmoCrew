@@ -12,7 +12,7 @@ const CandidaturasPage = () => {
   const fetchCandidaturas = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/candidaturas_recebidas", {
+      const res = await fetch("http://localhost:5000/candidaturas_recebidas_view", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();

@@ -1,26 +1,45 @@
 .wrapper {
-  display: grid;
-  grid-template-columns: 280px 1fr 280px;
-  gap: 1.5rem;
-  padding: 1.5rem;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2.5rem;
+  padding: 2.5rem 0;
   min-height: calc(100vh - 60px);
-  background-color: var(--primary-dark);
-  color: var(--text-light);
-  max-width: 1400px;
+  background-color: var(--primary-dark, #18181b);
+  color: var(--text-light, #f0f0f0);
+  max-width: 1200px;
   margin: 0 auto;
   box-sizing: border-box;
 }
 
-.sidebarLeft, .sidebarRight {
-  background-color: var(--primary);
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+.sidebarLeft {
+  color: yellow !important;
+  padding: 2rem 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  min-width: 220px;
+  max-width: 320px;
+  align-self: flex-start;
+  box-sizing: border-box;
+  transition: box-shadow 0.2s, background 0.2s;
+  margin-right: 0;
 }
 
 .feed {
-  background-color: transparent; 
-  padding: 0; 
+  background-color: var(--primary-darker, #23232b);
+  padding: 2.2rem 2rem 2.2rem 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  min-width: 350px;
+  max-width: 700px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+  transition: box-shadow 0.2s, background 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .sidebarTitle {
@@ -114,13 +133,16 @@
 }
 
 .postCard {
-  background-color: var(--primary-darker, #2a2a2e); 
+  background-color: var(--primary-darker, #2a2a2e);
   padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  border-radius: 10px;
+  margin-bottom: 2rem;
+  border-radius: 12px;
   border: 1px solid var(--primary-light, #444);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   position: relative;
+  width: 100%;
+  max-width: 600px;
+  transition: box-shadow 0.2s, background 0.2s;
 }
 .postHeader { display: flex; align-items: center; margin-bottom: 1rem; }
 .postCreatorLink { display: flex; align-items: center; text-decoration: none; color: inherit; gap: 12px; }
@@ -345,36 +367,54 @@
   color: var(--text-white, #ffffff);
 }
 
-@media (max-width: 1024px) { 
-  .wrapper { 
-    grid-template-columns: 1fr; 
-    padding: 1rem; 
-    max-width: 100%; 
+@media (max-width: 1100px) {
+  .wrapper {
+    max-width: 98vw;
+    gap: 1.2rem;
+    padding: 1.2rem 0.2rem;
   }
-  .sidebarLeft, .sidebarRight { 
-    width: 100%; 
-    padding: 1rem; 
-    margin-bottom: 1rem; 
-    grid-column: 1 / -1; 
+  .feed {
+    max-width: 98vw;
+    min-width: 0;
+    padding: 1.2rem 0.7rem;
   }
-  .sidebarLeft { order: 2; margin-top: 0; }
-  .feed { order: 1; }
-  .sidebarRight { order: 3; } 
+  .sidebarLeft {
+    padding: 1.2rem 0.7rem;
+  }
 }
 
-@media (max-width: 768px) { 
-  .postCard { padding: 1rem; }
-  .postUserPhoto { width: 40px; height: 40px; }
-  .postUserName { font-size: 1rem; }
-  .postTitle { font-size: 1.2rem; }
-  .postDescription { font-size: 0.9rem; }
-  .audioPlayerContainer { margin-top: 0.8rem; margin-bottom: 0.8rem; }
-  .postDate { font-size: 0.7rem; }
-  .candidatarButton { padding: 0.5rem 1rem; font-size: 0.8rem; bottom: 0.8rem; right: 1rem; }
+@media (max-width: 800px) {
+  .wrapper {
+    flex-direction: column;
+    max-width: 100vw;
+    gap: 0.5rem;
+    padding: 0.5rem 0.1rem;
+    align-items: stretch;
+  }
+  .sidebarLeft, .feed {
+    max-width: 100vw;
+    min-width: 0;
+    margin: 0 auto 1.2rem auto;
+    border-radius: 12px;
+    padding: 1rem 0.5rem;
+  }
+  .feed {
+    align-items: stretch;
+  }
+}
 
-  .modalAnunciar { padding: 1.5rem; max-width: 95%; } 
-  .modalAnunciar h3 { font-size: 1.5rem; }
-  .buttonAnunciar { padding: 0.7rem 1.5rem; font-size: 0.9rem; }
-  .inputFieldAnunciar, .textareaFieldAnunciar { padding: 0.8rem; font-size: 0.9rem; border-radius: 15px; }
-  .textareaFieldAnunciar { min-height: 80px; border-radius: 10px; }
+@media (max-width: 500px) {
+  .sidebarLeft, .feed {
+    padding: 0.5rem 0.2rem;
+    border-radius: 8px;
+  }
+  .wrapper {
+    padding: 0.2rem 0.05rem;
+    gap: 0.2rem;
+  }
+  .postCard {
+    padding: 0.7rem;
+    border-radius: 7px;
+    margin-bottom: 1rem;
+  }
 }
