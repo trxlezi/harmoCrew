@@ -410,6 +410,8 @@ def get_user_by_id(current_user_email, view_user_id):
 
         return jsonify({"user": user_profile})
     except mysql.connector.Error as err:
+        import traceback
+        traceback.print_exc()
         return jsonify({"message": "Erro no banco de dados.", "error": str(err)}), 500
     finally:
         if cursor: cursor.close()

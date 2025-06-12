@@ -9,6 +9,7 @@ config = {
 
 DB_NAME = 'harmocrew'
 
+# Tabelas
 TABLES = {}
 TABLES['users'] = (
     "CREATE TABLE IF NOT EXISTS users ("
@@ -17,7 +18,9 @@ TABLES['users'] = (
     "  email VARCHAR(255) NOT NULL UNIQUE,"
     "  senha VARCHAR(255) NOT NULL,"
     "  profile_pic_url VARCHAR(255) DEFAULT NULL,"
-    "  last_login TIMESTAMP"
+    "  last_login TIMESTAMP,"
+    "  descricao TEXT,"
+    "  links_sociais TEXT"
     ") ENGINE=InnoDB"
 )
 
@@ -56,7 +59,7 @@ TABLES['seguidores'] = (
     "  UNIQUE(seguidor_id, seguido_id),"
     "  FOREIGN KEY (seguidor_id) REFERENCES users(id) ON DELETE CASCADE,"
     "  FOREIGN KEY (seguido_id) REFERENCES users(id) ON DELETE CASCADE"
-    ") ENGINE=InnoDB;"
+    ") ENGINE=InnoDB"
 )
 
 TABLES['audit_log'] = (
@@ -68,83 +71,64 @@ TABLES['audit_log'] = (
     "  old_value TEXT,"
     "  new_value TEXT,"
     "  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-    ") ENGINE=InnoDB;"
+    ") ENGINE=InnoDB"
 )
 
 TABLES['messages'] = (
     "CREATE TABLE IF NOT EXISTS messages ("
-    " id INT AUTO_INCREMENT PRIMARY KEY,"
-    " sender_id INT,"
-    " receiver_id INT,"
-    " content TEXT,"
-    " timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,"
-    " FOREIGN KEY (sender_id) REFERENCES users(id),"
-    " FOREIGN KEY (receiver_id) REFERENCES users(id)"
-") ENGINE=InnoDB;"
+    "  id INT AUTO_INCREMENT PRIMARY KEY,"
+    "  sender_id INT,"
+    "  receiver_id INT,"
+    "  content TEXT,"
+    "  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,"
+    "  FOREIGN KEY (sender_id) REFERENCES users(id),"
+    "  FOREIGN KEY (receiver_id) REFERENCES users(id)"
+    ") ENGINE=InnoDB"
 )
+
 def get_connection():
-    try:
-        return mysql.connector.connect(
-            user=config['user'],
-            password=config['password'],
-            host=config['host'],
-            database=DB_NAME
-        )
-    except mysql.connector.Error as err:
-        raise
+    return mysql.connector.connect(
+        user=config['user'],
+        password=config['password'],
+        host=config['host'],
+        database=DB_NAME
+    )
 
 def init_db():
-    conn = None
-    cursor = None
     try:
         conn = mysql.connector.connect(**config)
         cursor = conn.cursor()
 
-        try:
-            cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME} DEFAULT CHARACTER SET 'utf8'")
-        except mysql.connector.Error as err:
-            return
-
+        # Cria o banco se não existir
+        cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME} DEFAULT CHARACTER SET 'utf8'")
         conn.database = DB_NAME
 
-        for table_name in TABLES:
-            table_description = TABLES[table_name]
+        # Criação das tabelas
+        for name, ddl in TABLES.items():
             try:
-                cursor.execute(table_description)
+                cursor.execute(ddl)
             except mysql.connector.Error as err:
-                pass
+                print(f"Erro ao criar tabela {name}: {err}")
 
+        # Criação das views
         views = {
             'UserPostsView': """
                 CREATE OR REPLACE VIEW UserPostsView AS
                 SELECT
-                    p.id AS post_id,
-                    p.titulo,
-                    p.texto,
-                    p.audio_url,
-                    p.created_at,
-                    p.updated_at,
-                    u.id AS user_id,
-                    u.nome AS user_nome,
-                    u.email AS user_email
+                    p.id AS post_id, p.titulo, p.texto, p.audio_url,
+                    p.created_at, p.updated_at,
+                    u.id AS user_id, u.nome AS user_nome, u.email AS user_email
                 FROM posts p
                 JOIN users u ON p.user_id = u.id;
             """,
             'CandidacyDetailsView': """
                 CREATE OR REPLACE VIEW CandidacyDetailsView AS
                 SELECT
-                    c.id AS candidatura_id,
-                    c.data AS data_candidatura,
+                    c.id AS candidatura_id, c.data AS data_candidatura,
                     c.status AS status_candidatura,
-                    u_cand.id AS candidato_id,
-                    u_cand.nome AS candidato_nome,
-                    u_cand.email AS candidato_email,
-                    p.id AS post_id,
-                    p.texto AS post_texto,
-                    p.created_at AS post_created_at,
-                    u_post.id AS owner_id,
-                    u_post.nome AS owner_nome,
-                    u_post.email AS owner_email
+                    u_cand.id AS candidato_id, u_cand.nome AS candidato_nome, u_cand.email AS candidato_email,
+                    p.id AS post_id, p.texto AS post_texto, p.created_at AS post_created_at,
+                    u_post.id AS owner_id, u_post.nome AS owner_nome, u_post.email AS owner_email
                 FROM candidaturas c
                 JOIN users u_cand ON c.user_id = u_cand.id
                 JOIN posts p ON c.post_id = p.id
@@ -153,9 +137,7 @@ def init_db():
             'FollowerFollowingCountView': """
                 CREATE OR REPLACE VIEW FollowerFollowingCountView AS
                 SELECT
-                    u.id AS user_id,
-                    u.nome AS user_nome,
-                    u.email AS user_email,
+                    u.id AS user_id, u.nome AS user_nome, u.email AS user_email,
                     (SELECT COUNT(*) FROM seguidores WHERE seguido_id = u.id) AS followers_count,
                     (SELECT COUNT(*) FROM seguidores WHERE seguidor_id = u.id) AS following_count
                 FROM users u;
@@ -163,9 +145,7 @@ def init_db():
             'ActiveUsersWithRecentPostsView': """
                 CREATE OR REPLACE VIEW ActiveUsersWithRecentPostsView AS
                 SELECT
-                    u.id AS user_id,
-                    u.nome AS user_nome,
-                    u.email AS user_email,
+                    u.id AS user_id, u.nome AS user_nome, u.email AS user_email,
                     MAX(p.created_at) AS last_post_date
                 FROM users u
                 JOIN posts p ON u.id = p.user_id
@@ -174,12 +154,14 @@ def init_db():
                 HAVING COUNT(p.id) > 0;
             """
         }
-        for view_name, view_sql in views.items():
-            try:
-                cursor.execute(view_sql)
-            except mysql.connector.Error as err:
-                pass
 
+        for name, sql in views.items():
+            try:
+                cursor.execute(sql)
+            except mysql.connector.Error as err:
+                print(f"Erro ao criar view {name}: {err}")
+
+        # Triggers
         triggers = {
             'after_user_insert': """
                 CREATE TRIGGER after_user_insert
@@ -227,7 +209,7 @@ def init_db():
                     END IF;
                 END;
             """,
-             'after_login_update_last_login': """
+            'after_login_update_last_login': """
                 CREATE TRIGGER after_login_update_last_login
                 AFTER UPDATE ON users
                 FOR EACH ROW
@@ -241,102 +223,91 @@ def init_db():
                 END;
             """
         }
-        for trigger_name, trigger_sql in triggers.items():
+
+        for name, sql in triggers.items():
             try:
-                cursor.execute(f"DROP TRIGGER IF EXISTS {trigger_name};")
-                cursor.execute(trigger_sql)
+                cursor.execute(f"DROP TRIGGER IF EXISTS {name};")
+                cursor.execute(sql)
             except mysql.connector.Error as err:
-                pass
+                print(f"Erro ao criar trigger {name}: {err}")
 
-        store_procedures = {
-    'CreateNewUser': """
-        CREATE PROCEDURE CreateNewUser(
-            IN p_nome VARCHAR(255),
-            IN p_email VARCHAR(255),
-            IN p_senha_hash VARCHAR(255)
-        )
-        BEGIN
-            INSERT INTO users (nome, email, senha) VALUES (p_nome, p_email, p_senha_hash);
-        END
-    """,
-    'GetUserPosts': """
-        CREATE PROCEDURE GetUserPosts(IN p_user_id INT)
-        BEGIN
-            SELECT id, titulo, texto, audio_url, created_at, updated_at, user_id
-            FROM posts
-            WHERE user_id = p_user_id
-            ORDER BY created_at DESC;
-        END
-    """,
-    'GetPendingCandidaciesForPostOwner': """
-        CREATE PROCEDURE GetPendingCandidaciesForPostOwner(IN p_owner_user_id INT)
-        BEGIN
-            SELECT
-                c.id AS candidatura_id,
-                c.data AS data_candidatura,
-                u_cand.nome AS candidato_nome,
-                p.texto AS post_texto
-            FROM candidaturas c
-            JOIN users u_cand ON c.user_id = u_cand.id
-            JOIN posts p ON c.post_id = p.id
-            WHERE p.user_id = p_owner_user_id AND c.status = 'pendente'
-            ORDER BY c.data DESC;
-        END
-    """,
-    'UpdateCandidacyStatus': """
-        CREATE PROCEDURE UpdateCandidacyStatus(
-            IN p_candidatura_id INT,
-            IN p_new_status VARCHAR(20)
-        )
-        BEGIN
-            UPDATE candidaturas SET status = p_new_status WHERE id = p_candidatura_id;
-        END
-    """
-}
+        # Stored procedures
+        procedures = {
+            'CreateNewUser': """
+                CREATE PROCEDURE CreateNewUser(IN p_nome VARCHAR(255), IN p_email VARCHAR(255), IN p_senha_hash VARCHAR(255))
+                BEGIN
+                    INSERT INTO users (nome, email, senha) VALUES (p_nome, p_email, p_senha_hash);
+                END
+            """,
+            'GetUserPosts': """
+                CREATE PROCEDURE GetUserPosts(IN p_user_id INT)
+                BEGIN
+                    SELECT id, titulo, texto, audio_url, created_at, updated_at, user_id
+                    FROM posts
+                    WHERE user_id = p_user_id
+                    ORDER BY created_at DESC;
+                END
+            """,
+            'GetPendingCandidaciesForPostOwner': """
+                CREATE PROCEDURE GetPendingCandidaciesForPostOwner(IN p_owner_user_id INT)
+                BEGIN
+                    SELECT c.id AS candidatura_id, c.data, u_cand.nome, p.texto
+                    FROM candidaturas c
+                    JOIN users u_cand ON c.user_id = u_cand.id
+                    JOIN posts p ON c.post_id = p.id
+                    WHERE p.user_id = p_owner_user_id AND c.status = 'pendente'
+                    ORDER BY c.data DESC;
+                END
+            """,
+            'UpdateCandidacyStatus': """
+                CREATE PROCEDURE UpdateCandidacyStatus(IN p_candidatura_id INT, IN p_new_status VARCHAR(20))
+                BEGIN
+                    UPDATE candidaturas SET status = p_new_status WHERE id = p_candidatura_id;
+                END
+            """
+        }
 
-        for sp_name, sp_sql in store_procedures.items():
+        for name, sql in procedures.items():
             try:
-                cursor.execute(f"DROP PROCEDURE IF EXISTS {sp_name};")
-                cursor.execute(sp_sql)
+                cursor.execute(f"DROP PROCEDURE IF EXISTS {name};")
+                cursor.execute(sql)
             except mysql.connector.Error as err:
-                pass
-            
-    except mysql.connector.Error as err:
-        print(f"Erro ao criar procedure {sp_name}: {err}")
+                print(f"Erro ao criar procedure {name}: {err}")
 
+        # Funções
         functions = {
             'GetUserPostCount': """
-                DELIMITER //
                 CREATE FUNCTION GetUserPostCount(p_user_id INT) RETURNS INT
-                DETERMINISTIC
+                DETERMINISTIC READS SQL DATA
                 BEGIN
                     DECLARE post_count INT;
                     SELECT COUNT(*) INTO post_count FROM posts WHERE user_id = p_user_id;
                     RETURN post_count;
-                END //
-                DELIMITER ;
+                END
             """,
             'IsFollowing': """
-                DELIMITER //
                 CREATE FUNCTION IsFollowing(p_follower_id INT, p_followed_id INT) RETURNS BOOLEAN
-                DETERMINISTIC
+                DETERMINISTIC READS SQL DATA
                 BEGIN
                     DECLARE is_following BOOLEAN;
-                    SELECT EXISTS(SELECT 1 FROM seguidores WHERE seguidor_id = p_follower_id AND seguido_id = p_followed_id) INTO is_following;
+                    SELECT EXISTS(
+                        SELECT 1 FROM seguidores
+                        WHERE seguidor_id = p_follower_id AND seguido_id = p_followed_id
+                    ) INTO is_following;
                     RETURN is_following;
-                END //
-                DELIMITER ;
+                END
             """
         }
-        for func_name, func_sql in functions.items():
+
+        for name, sql in functions.items():
             try:
-                cursor.execute(f"DROP FUNCTION IF EXISTS {func_name};")
-                cursor.execute(func_sql)
+                cursor.execute(f"DROP FUNCTION IF EXISTS {name};")
+                cursor.execute(sql)
             except mysql.connector.Error as err:
-                pass
+                print(f"Erro ao criar função {name}: {err}")
 
     except mysql.connector.Error as err:
-        pass
+        print(f"Erro na inicialização do banco: {err}")
     finally:
         if cursor:
             cursor.close()
