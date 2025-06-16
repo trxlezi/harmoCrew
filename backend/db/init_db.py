@@ -62,6 +62,18 @@ TABLES['seguidores'] = (
     ") ENGINE=InnoDB"
 )
 
+TABLES['follows'] = (
+    "CREATE TABLE IF NOT EXISTS follows ("
+    "  id INT AUTO_INCREMENT PRIMARY KEY,"
+    "  follower_id INT NOT NULL,"
+    "  following_id INT NOT NULL,"
+    "  criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,"
+    "  UNIQUE(follower_id, following_id),"
+    "  FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,"
+    "  FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE"
+    ") ENGINE=InnoDB"
+)
+
 TABLES['audit_log'] = (
     "CREATE TABLE IF NOT EXISTS audit_log ("
     "  id INT AUTO_INCREMENT PRIMARY KEY,"
@@ -117,7 +129,7 @@ def init_db():
                 SELECT
                     p.id AS post_id, p.titulo, p.texto, p.audio_url,
                     p.created_at, p.updated_at,
-                    u.id AS user_id, u.nome AS user_nome, u.email AS user_email
+                    u.id AS user_id, u.nome AS user_nome, u.email AS user_email, u.profile_pic_url
                 FROM posts p
                 JOIN users u ON p.user_id = u.id;
             """,

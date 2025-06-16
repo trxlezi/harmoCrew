@@ -35,8 +35,8 @@ export default function Navbar() {
           <div className={styles.userSection}>
             <Link to="/profile" className={styles.profileIconLink}>
               <img
-                src={user.profile_pic_url || `https://i.pravatar.cc/30?u=${user.id}`}
-                alt="Perfil"
+                src={user.profile_pic_url || `https://i.pravatar.cc/150?u=${user.id}`}
+                alt={user.nome}
                 className={styles.profileNavPhoto}
               />
             </Link>

@@ -104,7 +104,7 @@ export default function UserProfile() {
     if (!token || !profileUser || !loggedUserId) {
       if (profileUser) {
         try {
-            const res = await fetch(`http://localhost:5000/user/${profileUser.id}/followers`);
+            const res = await fetch(`http://localhost:5000/followers/${profileUser.id}`);
             if(res.ok) {
                 const data = await res.json();
                 setFriends(data.followers || []);
@@ -115,7 +115,7 @@ export default function UserProfile() {
     }
 
     try {
-        const res = await fetch(`http://localhost:5000/user/${profileUser.id}/followers`, {
+        const res = await fetch(`http://localhost:5000/followers/${profileUser.id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -268,7 +268,7 @@ export default function UserProfile() {
               {friends.length > 0 ? friends.map(amigo => (
                 <Link to={`/usuario/${amigo.id}`} key={amigo.id} className={styles.userListItem}>
                   <img
-                    src={amigo.profile_pic_url || amigo.foto || `https://i.pravatar.cc/40?u=${amigo.id}`}
+                    src={amigo.profile_pic_url || amigo.foto || `https://i.pravatar.cc/150?u=${amigo.id}`}
                     alt={amigo.nome}
                   />
                   <span>{amigo.nome}</span>

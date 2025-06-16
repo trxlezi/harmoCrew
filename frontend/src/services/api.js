@@ -5,10 +5,10 @@ const api = axios.create({
 });
 
 // Envia uma mensagem
-export const sendMessage = (token, receiver_id, content) =>
+export const sendMessage = (token, receiver_id, message) =>
   api.post(
     '/messages',
-    { receiver_id, content },
+    { receiver_id, message },
     { headers: { Authorization: `Bearer ${token}` } }
   );
 

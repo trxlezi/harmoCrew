@@ -111,7 +111,7 @@ export default function ProfilePage() {
     } catch (error) { console.error("Erro de conexão ao buscar posts:", error); setUserPosts([]);}
 
     try {
-      const resFollowing = await fetch(`http://localhost:5000/user/${userIdToFetch}/following`, {
+      const resFollowing = await fetch(`http://localhost:5000/following/${userIdToFetch}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (resFollowing.ok) {
@@ -121,7 +121,7 @@ export default function ProfilePage() {
     } catch (error) { console.error("Erro de conexão ao buscar 'seguindo':", error); setFollowingList([]);}
 
     try {
-      const resFollowers = await fetch(`http://localhost:5000/user/${userIdToFetch}/followers`, {
+      const resFollowers = await fetch(`http://localhost:5000/followers/${userIdToFetch}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (resFollowers.ok) {
@@ -351,7 +351,7 @@ export default function ProfilePage() {
             <div className={styles.userList}>
               {followingList.length > 0 ? followingList.map(user => (
                 <Link to={`/usuario/${user.id}`} key={user.id} className={styles.userListItem}>
-                  <img src={user.profile_pic_url || `https://i.pravatar.cc/40?u=${user.id}`} alt={user.nome} />
+                  <img src={user.profile_pic_url || `https://i.pravatar.cc/150?u=${user.id}`} alt={user.nome} />
                   <span>{user.nome}</span>
                 </Link>
               )) : <p className={styles.emptyTabText}>{isCurrentUserProfile ? "Você não segue ninguém ainda." : "Este usuário não segue ninguém."}</p>}
@@ -362,7 +362,7 @@ export default function ProfilePage() {
             <div className={styles.userList}>
               {followersList.length > 0 ? followersList.map(user => (
                 <Link to={`/usuario/${user.id}`} key={user.id} className={styles.userListItem}>
-                  <img src={user.profile_pic_url || `https://i.pravatar.cc/40?u=${user.id}`} alt={user.nome} />
+                  <img src={user.profile_pic_url || `https://i.pravatar.cc/150?u=${user.id}`} alt={user.nome} />
                   <span>{user.nome}</span>
                 </Link>
               )) : <p className={styles.emptyTabText}>{isCurrentUserProfile ? "Você não tem seguidores ainda." : "Nenhum seguidor ainda."}</p>}
