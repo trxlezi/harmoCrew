@@ -95,13 +95,12 @@ def get_chat_contacts(current_user_email):
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # Get current user's ID
         cursor.execute("SELECT id FROM users WHERE email = %s", (current_user_email,))
         current_user = cursor.fetchone()
         if not current_user:
             return jsonify({"message": "Usuário não encontrado."}), 404
+        user_id = current_user["id"]
 
-        # Get all users who have exchanged messages with current user
         cursor.execute("""
             SELECT DISTINCT
                 u.id,
@@ -125,13 +124,19 @@ def get_chat_contacts(current_user_email):
                     LIMIT 1
                 ) as last_message_time
             FROM users u
-            INNER JOIN messages m ON (m.sender_id = u.id OR m.receiver_id = u.id)
-            WHERE (m.sender_id = %s OR m.receiver_id = %s)
-            AND u.id != %s
+            INNER JOIN follows f1 ON f1.following_id = u.id
+            INNER JOIN follows f2 ON f2.follower_id = u.id
+            WHERE f1.follower_id = %s
+              AND f2.following_id = %s
+              AND u.id != %s
             ORDER BY last_message_time DESC
-        """, (current_user['id'], current_user['id'], current_user['id'], current_user['id'], 
-              current_user['id'], current_user['id'], current_user['id']))
-        
+        """, (
+            user_id, user_id,
+            user_id, user_id,  
+            user_id, user_id,  
+            user_id           
+        ))
+
         contacts = cursor.fetchall()
         for contact in contacts:
             contact['profile_pic_url'] = contact.get('profile_pic_url') or f"https://i.pravatar.cc/150?u={contact['id']}"
@@ -140,7 +145,8 @@ def get_chat_contacts(current_user_email):
 
         return jsonify({"contacts": contacts})
     except Exception as err:
+        print("Erro em /messages/contacts:", err)
         return jsonify({"message": "Erro ao buscar contatos.", "error": str(err)}), 500
     finally:
         if cursor: cursor.close()
-        if conn and conn.is_connected(): conn.close() 
+        if conn and conn.is_connected(): conn.close()
