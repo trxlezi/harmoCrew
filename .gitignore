@@ -1,0 +1,15 @@
+.worktrees/
+backend/.env
+backend/.venv/
+frontend/node_modules/
+frontend/build/
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/.idea/
+.idea/
+*.iml
+*.log
+Thumbs.db
