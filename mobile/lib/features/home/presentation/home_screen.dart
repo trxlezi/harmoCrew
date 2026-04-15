@@ -71,10 +71,16 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 700;
+          final isLandscape =
+              MediaQuery.of(context).orientation == Orientation.landscape;
+          final useSplitLayout = constraints.maxWidth >= 700 || isLandscape;
+          final horizontalPadding = useSplitLayout ? 28.0 : 20.0;
+          final sectionWidth = useSplitLayout
+              ? (constraints.maxWidth - (horizontalPadding * 2) - 20) / 2
+              : constraints.maxWidth;
 
           return ListView(
-            padding: EdgeInsets.all(isWide ? 28 : 20),
+            padding: EdgeInsets.all(horizontalPadding),
             children: [
               Container(
                 padding: const EdgeInsets.all(24),
@@ -127,94 +133,105 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Visao geral',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Esta versao mobile prioriza os criterios academicos '
-                        'e simula os principais fluxos da plataforma com '
-                        'dados locais.',
-                      ),
-                      const SizedBox(height: 20),
-                      if (isWide)
-                        Row(
+              Wrap(
+                spacing: 20,
+                runSpacing: 20,
+                children: [
+                  SizedBox(
+                    width: sectionWidth,
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: _openDetails,
-                                icon: const Icon(Icons.arrow_forward),
-                                label: const Text('Abrir detalhes'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: _openMemberForm,
-                                icon: const Icon(Icons.person_add),
-                                label: const Text('Novo integrante'),
-                              ),
-                            ),
-                          ],
-                        )
-                      else
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            ElevatedButton.icon(
-                              onPressed: _openDetails,
-                              icon: const Icon(Icons.arrow_forward),
-                              label: const Text('Abrir detalhes'),
+                            Text(
+                              'Visao geral',
+                              style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: 12),
-                            OutlinedButton.icon(
-                              onPressed: _openMemberForm,
-                              icon: const Icon(Icons.person_add),
-                              label: const Text('Novo integrante'),
+                            const Text(
+                              'Esta versao mobile prioriza os criterios '
+                              'academicos e simula os principais fluxos da '
+                              'plataforma com dados locais.',
+                            ),
+                            const SizedBox(height: 20),
+                            if (useSplitLayout)
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _openDetails,
+                                      icon: const Icon(Icons.arrow_forward),
+                                      label: const Text('Abrir detalhes'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: _openMemberForm,
+                                      icon: const Icon(Icons.person_add),
+                                      label: const Text('Novo integrante'),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  ElevatedButton.icon(
+                                    onPressed: _openDetails,
+                                    icon: const Icon(Icons.arrow_forward),
+                                    label: const Text('Abrir detalhes'),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  OutlinedButton.icon(
+                                    onPressed: _openMemberForm,
+                                    icon: const Icon(Icons.person_add),
+                                    label: const Text('Novo integrante'),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: sectionWidth,
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Proximas acoes',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 12),
+                            const _ActionRow(
+                              icon: Icons.event_available,
+                              title: 'Ensaiar repertorio principal',
+                              subtitle: 'Quarta-feira, 19h30',
+                            ),
+                            const _ActionRow(
+                              icon: Icons.campaign_outlined,
+                              title: 'Responder candidatos pendentes',
+                              subtitle: '2 projetos aguardando retorno',
+                            ),
+                            const _ActionRow(
+                              icon: Icons.mic_external_on_outlined,
+                              title: 'Atualizar perfil artistico',
+                              subtitle: 'Adicionar links e descricao final',
                             ),
                           ],
                         ),
-                    ],
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Proximas acoes',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 12),
-                      const _ActionRow(
-                        icon: Icons.event_available,
-                        title: 'Ensaiar repertorio principal',
-                        subtitle: 'Quarta-feira, 19h30',
-                      ),
-                      const _ActionRow(
-                        icon: Icons.campaign_outlined,
-                        title: 'Responder candidatos pendentes',
-                        subtitle: '2 projetos aguardando retorno',
-                      ),
-                      const _ActionRow(
-                        icon: Icons.mic_external_on_outlined,
-                        title: 'Atualizar perfil artistico',
-                        subtitle: 'Adicionar links e descricao final',
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
               const SizedBox(height: 20),
               Text(
@@ -222,21 +239,44 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
-              ..._members.map(
-                (member) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Card(
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        child: Text(member.name.substring(0, 1)),
+              if (useSplitLayout)
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: _members
+                      .map(
+                        (member) => SizedBox(
+                          width: sectionWidth,
+                          child: Card(
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                child: Text(member.name.substring(0, 1)),
+                              ),
+                              title: Text('${member.name} - ${member.role}'),
+                              subtitle: Text(member.availability),
+                              trailing: const Icon(Icons.chevron_right),
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                )
+              else
+                ..._members.map(
+                  (member) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Card(
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          child: Text(member.name.substring(0, 1)),
+                        ),
+                        title: Text('${member.name} - ${member.role}'),
+                        subtitle: Text(member.availability),
+                        trailing: const Icon(Icons.chevron_right),
                       ),
-                      title: Text('${member.name} - ${member.role}'),
-                      subtitle: Text(member.availability),
-                      trailing: const Icon(Icons.chevron_right),
                     ),
                   ),
                 ),
-              ),
             ],
           );
         },
@@ -254,7 +294,7 @@ class _HeroMetric extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 120,
+      constraints: const BoxConstraints.tightFor(width: 120, height: 112),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.16),
@@ -271,7 +311,14 @@ class _HeroMetric extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Text(label, style: const TextStyle(color: Colors.white70)),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ),
         ],
       ),
     );
