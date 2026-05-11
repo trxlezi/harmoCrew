@@ -1,9 +1,17 @@
 from flask import Blueprint, request
+from urllib.parse import urlparse
 from db.database import get_connection
 from middleware.auth import token_required
 from routes.shared import error_response, get_user_by_email, serialize_profile, success_response
 
 users_bp = Blueprint("users", __name__)
+
+
+def _is_valid_image_url(value):
+    parsed = urlparse(value)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        return False
+    return True
 
 
 def _resolve_profile(cursor, current_user_email, view_user_id):
@@ -283,6 +291,41 @@ def update_links(current_user_email):
         return success_response({"profile": profile, "message": "Links atualizados."})
     except Exception as err:
         return error_response("Erro ao atualizar links.", 500, str(err))
+    finally:
+        if cursor:
+            cursor.close()
+        if conn and conn.is_connected():
+            conn.close()
+
+
+@users_bp.route("/user/me/photo", methods=["PUT"])
+@users_bp.route("/api/profiles/me/photo", methods=["PUT"])
+@token_required
+def update_photo(current_user_email):
+    payload = request.json or {}
+    profile_pic_url = str(payload.get("profile_pic_url") or "").strip()
+
+    if not profile_pic_url:
+        return error_response("URL da foto de perfil e obrigatoria.", 400)
+
+    if not _is_valid_image_url(profile_pic_url):
+        return error_response("Informe uma URL valida iniciada por http ou https.", 400)
+
+    conn = None
+    cursor = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "UPDATE users SET profile_pic_url = %s WHERE email = %s",
+            (profile_pic_url, current_user_email),
+        )
+        conn.commit()
+        user = get_user_by_email(cursor, current_user_email)
+        profile = serialize_profile(user, is_following=False)
+        return success_response({"profile": profile, "message": "Foto de perfil atualizada."})
+    except Exception as err:
+        return error_response("Erro ao atualizar foto de perfil.", 500, str(err))
     finally:
         if cursor:
             cursor.close()

@@ -18,6 +18,7 @@ const api = {
     login: (payload) => client.post("/login", payload),
     register: (payload) => client.post("/register", payload),
     me: () => client.get("/profile"),
+    logout: () => client.post("/logout"),
   },
   feed: {
     getHomeFeed: () => client.get("/feed"),
@@ -50,6 +51,8 @@ const api = {
       client.put("/profiles/me/description", { descricao: description }),
     updateLinks: (links) =>
       client.put("/profiles/me/links", { links_sociais: links }),
+    updatePhoto: (profilePicUrl) =>
+      client.put("/profiles/me/photo", { profile_pic_url: profilePicUrl }),
     follow: (profileId) => client.post(`/profiles/${profileId}/follow`),
     unfollow: (profileId) => client.delete(`/profiles/${profileId}/follow`),
   },

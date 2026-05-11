@@ -126,6 +126,28 @@ def init_db():
             except mysql.connector.Error as err:
                 print(f"Erro ao criar tabela {name}: {err}")
 
+        user_columns = {
+            'profile_pic_url': "ALTER TABLE users ADD COLUMN profile_pic_url VARCHAR(255) DEFAULT NULL",
+            'last_login': "ALTER TABLE users ADD COLUMN last_login TIMESTAMP NULL",
+            'descricao': "ALTER TABLE users ADD COLUMN descricao TEXT",
+            'links_sociais': "ALTER TABLE users ADD COLUMN links_sociais TEXT",
+        }
+
+        for column_name, alter_sql in user_columns.items():
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'users' AND COLUMN_NAME = %s
+                """,
+                (DB_NAME, column_name),
+            )
+            if cursor.fetchone()[0] == 0:
+                try:
+                    cursor.execute(alter_sql)
+                except mysql.connector.Error as err:
+                    print(f"Erro ao adicionar coluna {column_name}: {err}")
+
         # Criação das views
         views = {
             'UserPostsView': """
@@ -154,8 +176,8 @@ def init_db():
                 CREATE OR REPLACE VIEW FollowerFollowingCountView AS
                 SELECT
                     u.id AS user_id, u.nome AS user_nome, u.email AS user_email,
-                    (SELECT COUNT(*) FROM seguidores WHERE seguido_id = u.id) AS followers_count,
-                    (SELECT COUNT(*) FROM seguidores WHERE seguidor_id = u.id) AS following_count
+                    (SELECT COUNT(*) FROM follows WHERE following_id = u.id) AS followers_count,
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = u.id) AS following_count
                 FROM users u;
             """,
             'ActiveUsersWithRecentPostsView': """
@@ -307,8 +329,8 @@ def init_db():
                 BEGIN
                     DECLARE is_following BOOLEAN;
                     SELECT EXISTS(
-                        SELECT 1 FROM seguidores
-                        WHERE seguidor_id = p_follower_id AND seguido_id = p_followed_id
+                        SELECT 1 FROM follows
+                        WHERE follower_id = p_follower_id AND following_id = p_followed_id
                     ) INTO is_following;
                     RETURN is_following;
                 END

@@ -13,7 +13,11 @@ export default function ProfileHero({
     <SurfaceCard className="profile-hero">
       <div className="profile-hero-main">
         <div className="profile-avatar">
-          {profile.nome?.slice(0, 1).toUpperCase() ?? "H"}
+          {profile.profile_pic_url ? (
+            <img src={profile.profile_pic_url} alt="" />
+          ) : (
+            profile.nome?.slice(0, 1).toUpperCase() ?? "H"
+          )}
         </div>
         <div className="profile-copy">
           <StatusPill tone="accent">

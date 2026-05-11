@@ -63,10 +63,17 @@ export function AuthProvider({ children }) {
         setToken(nextToken);
         setUser(nextUser);
       },
-      logout: () => {
-        localStorage.removeItem("harmocrew-token");
-        setToken(null);
-        setUser(null);
+      logout: async () => {
+        try {
+          if (token) {
+            await api.auth.logout();
+          }
+        } finally {
+          localStorage.removeItem("harmocrew-token");
+          setAuthToken(null);
+          setToken(null);
+          setUser(null);
+        }
       },
       updateUser: (updater) => {
         setUser((currentUser) =>

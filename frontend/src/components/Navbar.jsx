@@ -41,7 +41,11 @@ export default function Navbar() {
 
       <div className="topbar-user">
         <div className="topbar-avatar">
-          {user?.nome?.slice(0, 1).toUpperCase() ?? "H"}
+          {user?.profile_pic_url ? (
+            <img src={user.profile_pic_url} alt="" />
+          ) : (
+            user?.nome?.slice(0, 1).toUpperCase() ?? "H"
+          )}
         </div>
         <div className="topbar-user-copy">
           <strong>{capitalizeName(user?.nome) || "HarmoCrew"}</strong>
@@ -50,8 +54,8 @@ export default function Navbar() {
         <button
           type="button"
           className="ghost-button"
-          onClick={() => {
-            logout();
+          onClick={async () => {
+            await logout();
             navigate("/login");
           }}
         >

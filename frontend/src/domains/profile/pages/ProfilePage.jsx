@@ -13,6 +13,7 @@ export default function ProfilePage() {
   const [projects, setProjects] = useState([]);
   const [descriptionDraft, setDescriptionDraft] = useState("");
   const [linksDraft, setLinksDraft] = useState("");
+  const [photoDraft, setPhotoDraft] = useState("");
   const [status, setStatus] = useState("loading");
   const [feedbackMessage, setFeedbackMessage] = useState("");
 
@@ -28,6 +29,7 @@ export default function ProfilePage() {
       setProfile(nextProfile);
       setDescriptionDraft(nextProfile.descricao || "");
       setLinksDraft(nextProfile.links_sociais || "");
+      setPhotoDraft(nextProfile.profile_pic_url || "");
       setProjects(projectsResponse.data.data.projects || []);
       setStatus("ready");
     }
@@ -66,6 +68,20 @@ export default function ProfilePage() {
       setFeedbackMessage(
         error?.response?.data?.error?.message ||
           "Nao foi possivel atualizar os links."
+      );
+    }
+  }
+
+  async function handleSavePhoto() {
+    try {
+      const response = await api.profiles.updatePhoto(photoDraft);
+      setProfile(response.data.data.profile);
+      updateUser((current) => ({ ...current, ...response.data.data.profile }));
+      setFeedbackMessage("Foto de perfil atualizada com sucesso.");
+    } catch (error) {
+      setFeedbackMessage(
+        error?.response?.data?.error?.message ||
+          "Nao foi possivel atualizar a foto de perfil."
       );
     }
   }
@@ -143,6 +159,26 @@ export default function ProfilePage() {
         </section>
 
         <aside className="sidebar-column">
+          <SurfaceCard>
+            <SectionHeader
+              eyebrow="Foto"
+              title="Imagem de perfil"
+              subtitle="Use uma URL publica de imagem para atualizar sua apresentacao."
+            />
+            <label className="field">
+              <span>URL da imagem</span>
+              <input
+                type="url"
+                value={photoDraft}
+                onChange={(event) => setPhotoDraft(event.target.value)}
+                placeholder="https://..."
+              />
+            </label>
+            <button type="button" className="secondary-button" onClick={handleSavePhoto}>
+              Atualizar foto
+            </button>
+          </SurfaceCard>
+
           <SurfaceCard>
             <SectionHeader
               eyebrow="Links"
