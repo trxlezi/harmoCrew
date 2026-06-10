@@ -1,6 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/widgets/app_scaffold.dart';
+import '../../collaboration/models/artist_profile.dart';
+import '../../collaboration/models/application.dart';
+import '../../collaboration/models/decision_record.dart';
+import '../../collaboration/models/project_task.dart';
+import '../../collaboration/models/rehearsal.dart';
+import '../../collaboration/models/weekly_goal.dart';
+import '../../collaboration/screens/applications_screen.dart';
+import '../../collaboration/screens/decisions_screen.dart';
+import '../../collaboration/screens/messages_screen.dart';
+import '../../collaboration/screens/rehearsals_screen.dart';
+import '../../collaboration/screens/tasks_screen.dart';
+import '../../collaboration/screens/weekly_goals_screen.dart';
+import '../../collaboration/stores/mock_collaboration_store.dart';
+import '../../collaboration/widgets/collaboration_summary_card.dart';
 import '../../details/presentation/details_screen.dart';
 import '../../members/data/mock_members.dart';
 import '../../members/domain/member.dart';
@@ -37,6 +51,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() {
       _members.add(result);
+      MockCollaborationStore.instance.addArtist(
+        ArtistProfile(
+          id: 'artist-${DateTime.now().microsecondsSinceEpoch}',
+          name: result.name,
+          email: '',
+          bio: 'Perfil cadastrado localmente pela tela inicial.',
+          specialties: result.specialties.isEmpty
+              ? [result.role]
+              : result.specialties,
+          availability: result.availability,
+          instruments: result.instruments,
+          styles: result.styles,
+          city: result.city,
+        ),
+      );
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -60,6 +89,24 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final projects = MockProjects.all();
+    final collaborationStore = MockCollaborationStore.instance;
+    final pendingApplications = collaborationStore.applications
+        .where((application) => application.status == ApplicationStatus.pending)
+        .length;
+    final doingTasks = collaborationStore.tasks
+        .where((task) => task.status == ProjectTaskStatus.doing)
+        .length;
+    final doneTasks = collaborationStore.tasks
+        .where((task) => task.status == ProjectTaskStatus.done)
+        .length;
+    final weekGoals = collaborationStore.weeklyGoals
+        .where((goal) => _isCurrentWeek(goal.dueDate))
+        .length;
+    final registeredDecisions = collaborationStore.decisions
+        .where((decision) => decision.status == DecisionStatus.registered)
+        .length;
+    final recentActivities = _recentActivities(collaborationStore);
+    final upcomingDeadlines = _upcomingDeadlines(collaborationStore);
 
     return AppScaffold(
       title: 'harmoCrew',
@@ -78,6 +125,10 @@ class _HomeScreenState extends State<HomeScreen> {
           final sectionWidth = useSplitLayout
               ? (constraints.maxWidth - (horizontalPadding * 2) - 20) / 2
               : constraints.maxWidth;
+          final navigationCardWidth = useSplitLayout
+              ? 180.0
+              : ((constraints.maxWidth - (horizontalPadding * 2) - 12) / 2)
+                    .clamp(136.0, 220.0);
 
           return ListView(
             padding: EdgeInsets.all(horizontalPadding),
@@ -123,14 +174,129 @@ class _HomeScreenState extends State<HomeScreen> {
                           label: 'Projetos ativos',
                           value: projects.length.toString(),
                         ),
-                        const _HeroMetric(
+                        _HeroMetric(
                           label: 'Ensaios na semana',
-                          value: '1',
+                          value: collaborationStore
+                              .rehearsalsInWeek(DateTime.now())
+                              .toString(),
+                        ),
+                        _HeroMetric(
+                          label: 'Metas concluidas',
+                          value: collaborationStore
+                              .completedGoalsInWeek(DateTime.now())
+                              .toString(),
+                        ),
+                        _HeroMetric(
+                          label: 'Candidaturas pendentes',
+                          value: pendingApplications.toString(),
+                        ),
+                        _HeroMetric(
+                          label: 'Tarefas em andamento',
+                          value: doingTasks.toString(),
+                        ),
+                        _HeroMetric(
+                          label: 'Tarefas concluidas',
+                          value: doneTasks.toString(),
+                        ),
+                        _HeroMetric(
+                          label: 'Metas da semana',
+                          value: weekGoals.toString(),
+                        ),
+                        _HeroMetric(
+                          label: 'Decisoes registradas',
+                          value: registeredDecisions.toString(),
                         ),
                       ],
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 20),
+              CollaborationSummaryCard(store: collaborationStore),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 20,
+                runSpacing: 20,
+                children: [
+                  SizedBox(
+                    width: sectionWidth,
+                    child: _DashboardListCard(
+                      title: 'Atividades recentes',
+                      emptyMessage: 'Nenhuma atividade colaborativa recente.',
+                      items: recentActivities,
+                    ),
+                  ),
+                  SizedBox(
+                    width: sectionWidth,
+                    child: _DashboardListCard(
+                      title: 'Proximos prazos',
+                      emptyMessage: 'Nenhum prazo proximo encontrado.',
+                      items: upcomingDeadlines,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _NavigationCard(
+                    width: navigationCardWidth,
+                    icon: Icons.inbox_outlined,
+                    title: 'Candidaturas',
+                    subtitle: '$pendingApplications pendentes',
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      ApplicationsScreen.routeName,
+                    ),
+                  ),
+                  _NavigationCard(
+                    width: navigationCardWidth,
+                    icon: Icons.task_alt_outlined,
+                    title: 'Tarefas',
+                    subtitle: '$doingTasks em andamento',
+                    onTap: () =>
+                        Navigator.pushNamed(context, TasksScreen.routeName),
+                  ),
+                  _NavigationCard(
+                    width: navigationCardWidth,
+                    icon: Icons.event_available_outlined,
+                    title: 'Ensaios',
+                    subtitle:
+                        '${collaborationStore.rehearsalsInWeek(DateTime.now())} na semana',
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      RehearsalsScreen.routeName,
+                    ),
+                  ),
+                  _NavigationCard(
+                    width: navigationCardWidth,
+                    icon: Icons.history_outlined,
+                    title: 'Decisoes',
+                    subtitle: '$registeredDecisions registradas',
+                    onTap: () =>
+                        Navigator.pushNamed(context, DecisionsScreen.routeName),
+                  ),
+                  _NavigationCard(
+                    width: navigationCardWidth,
+                    icon: Icons.flag_outlined,
+                    title: 'Metas',
+                    subtitle: '$weekGoals na semana',
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      WeeklyGoalsScreen.routeName,
+                    ),
+                  ),
+                  _NavigationCard(
+                    width: navigationCardWidth,
+                    icon: Icons.forum_outlined,
+                    title: 'Comunicacao',
+                    subtitle: '${collaborationStore.messages.length} mensagens',
+                    onTap: () =>
+                        Navigator.pushNamed(context, MessagesScreen.routeName),
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
               Wrap(
@@ -211,21 +377,17 @@ class _HomeScreenState extends State<HomeScreen> {
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: 12),
-                            const _ActionRow(
-                              icon: Icons.event_available,
-                              title: 'Ensaiar repertorio principal',
-                              subtitle: 'Quarta-feira, 19h30',
-                            ),
-                            const _ActionRow(
-                              icon: Icons.campaign_outlined,
-                              title: 'Responder candidatos pendentes',
-                              subtitle: '2 projetos aguardando retorno',
-                            ),
-                            const _ActionRow(
-                              icon: Icons.mic_external_on_outlined,
-                              title: 'Atualizar perfil artistico',
-                              subtitle: 'Adicionar links e descricao final',
-                            ),
+                            ...upcomingDeadlines
+                                .take(3)
+                                .map(
+                                  (item) => _ActionRow(
+                                    icon: item.icon,
+                                    title: item.title,
+                                    subtitle: item.subtitle,
+                                  ),
+                                ),
+                            if (upcomingDeadlines.isEmpty)
+                              const Text('Nenhuma acao pendente no momento.'),
                           ],
                         ),
                       ),
@@ -325,6 +487,105 @@ class _HeroMetric extends StatelessWidget {
   }
 }
 
+class _DashboardItem {
+  const _DashboardItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+}
+
+class _DashboardListCard extends StatelessWidget {
+  const _DashboardListCard({
+    required this.title,
+    required this.items,
+    required this.emptyMessage,
+  });
+
+  final String title;
+  final List<_DashboardItem> items;
+  final String emptyMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 12),
+            if (items.isEmpty)
+              Text(emptyMessage)
+            else
+              ...items
+                  .take(5)
+                  .map(
+                    (item) => _ActionRow(
+                      icon: item.icon,
+                      title: item.title,
+                      subtitle: item.subtitle,
+                    ),
+                  ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavigationCard extends StatelessWidget {
+  const _NavigationCard({
+    required this.width,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final double width;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ActionRow extends StatelessWidget {
   const _ActionRow({
     required this.icon,
@@ -359,4 +620,148 @@ class _ActionRow extends StatelessWidget {
       ),
     );
   }
+}
+
+List<_DashboardItem> _recentActivities(MockCollaborationStore store) {
+  final activities = <_DashboardItem>[];
+
+  if (store.applications.isNotEmpty) {
+    final application = store.applications.last;
+    activities.add(
+      _DashboardItem(
+        icon: Icons.inbox_outlined,
+        title: 'Candidatura criada',
+        subtitle: '${application.specialty} em ${application.projectId}',
+      ),
+    );
+  }
+
+  if (store.tasks.isNotEmpty) {
+    final task = store.tasks.last;
+    activities.add(
+      _DashboardItem(
+        icon: Icons.task_alt_outlined,
+        title: 'Tarefa atualizada',
+        subtitle: '${task.title} - ${_taskStatusLabel(task.status)}',
+      ),
+    );
+  }
+
+  if (store.rehearsals.isNotEmpty) {
+    final rehearsal = store.rehearsals.last;
+    activities.add(
+      _DashboardItem(
+        icon: Icons.event_available_outlined,
+        title: 'Ensaio agendado',
+        subtitle: '${rehearsal.date} as ${rehearsal.time}',
+      ),
+    );
+  }
+
+  if (store.decisions.isNotEmpty) {
+    final decision = store.decisions.last;
+    activities.add(
+      _DashboardItem(
+        icon: Icons.history_outlined,
+        title: 'Decisao registrada',
+        subtitle: decision.title,
+      ),
+    );
+  }
+
+  if (store.messages.isNotEmpty) {
+    final message = store.messages.last;
+    activities.add(
+      _DashboardItem(
+        icon: Icons.forum_outlined,
+        title: 'Mensagem enviada',
+        subtitle: message.content,
+      ),
+    );
+  }
+
+  return activities;
+}
+
+List<_DashboardItem> _upcomingDeadlines(MockCollaborationStore store) {
+  final items = <_DashboardItem>[];
+
+  for (final task in store.tasks.where((task) {
+    return task.status != ProjectTaskStatus.done && _isUpcoming(task.dueDate);
+  })) {
+    items.add(
+      _DashboardItem(
+        icon: Icons.task_alt_outlined,
+        title: task.title,
+        subtitle: 'Tarefa vence em ${task.dueDate}',
+      ),
+    );
+  }
+
+  for (final goal in store.weeklyGoals.where((goal) {
+    return goal.status != WeeklyGoalStatus.done && _isUpcoming(goal.dueDate);
+  })) {
+    items.add(
+      _DashboardItem(
+        icon: Icons.flag_outlined,
+        title: goal.title,
+        subtitle: 'Meta vence em ${goal.dueDate}',
+      ),
+    );
+  }
+
+  for (final rehearsal in store.rehearsals.where((rehearsal) {
+    return rehearsal.status == RehearsalStatus.scheduled &&
+        _isUpcoming(rehearsal.date);
+  })) {
+    items.add(
+      _DashboardItem(
+        icon: Icons.event_available_outlined,
+        title: rehearsal.title,
+        subtitle: '${rehearsal.date} as ${rehearsal.time}',
+      ),
+    );
+  }
+
+  return items;
+}
+
+bool _isCurrentWeek(String dateText) {
+  final parsed = DateTime.tryParse(dateText);
+  if (parsed == null) {
+    return false;
+  }
+
+  final now = DateTime.now();
+  final start = DateTime(
+    now.year,
+    now.month,
+    now.day,
+  ).subtract(Duration(days: now.weekday - 1));
+  final end = start.add(const Duration(days: 7));
+  final date = DateTime(parsed.year, parsed.month, parsed.day);
+
+  return !date.isBefore(start) && date.isBefore(end);
+}
+
+bool _isUpcoming(String dateText) {
+  final parsed = DateTime.tryParse(dateText);
+  if (parsed == null) {
+    return false;
+  }
+
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final date = DateTime(parsed.year, parsed.month, parsed.day);
+  final days = date.difference(today).inDays;
+
+  return days >= 0 && days <= 7;
+}
+
+String _taskStatusLabel(ProjectTaskStatus status) {
+  return switch (status) {
+    ProjectTaskStatus.todo => 'A fazer',
+    ProjectTaskStatus.doing => 'Em andamento',
+    ProjectTaskStatus.done => 'Concluida',
+  };
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../app/widgets/app_scaffold.dart';
 import '../../auth/data/mock_auth_store.dart';
+import '../../collaboration/screens/weekly_goals_screen.dart';
+import '../../collaboration/stores/mock_collaboration_store.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -11,6 +13,12 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = MockAuthStore.currentUser;
+    final store = MockCollaborationStore.instance;
+    final matchingArtists = store.artists
+        .where((artist) => artist.email == user?.email)
+        .toList();
+    final artistId = matchingArtists.isEmpty ? null : matchingArtists.first.id;
+    final goals = store.weeklyGoalsForArtist(artistId);
     final initials = (user?.name ?? 'Marina Costa')
         .split(' ')
         .where((part) => part.isNotEmpty)
@@ -107,18 +115,20 @@ class ProfileScreen extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 12),
-                  const _InfoRow(
-                    icon: Icons.check_circle_outline,
-                    text: 'Revisar repertorio para o show universitario',
-                  ),
-                  const _InfoRow(
-                    icon: Icons.check_circle_outline,
-                    text: 'Responder candidaturas abertas no app',
-                  ),
-                  const _InfoRow(
-                    icon: Icons.radio_button_unchecked,
-                    text: 'Gravar guia vocal da faixa colaborativa',
-                  ),
+                  if (goals.isEmpty)
+                    const Text('Nenhuma meta semanal para este artista.')
+                  else
+                    ...goals
+                        .take(3)
+                        .map(
+                          (goal) => _InfoRow(
+                            icon: goal.status.name == 'done'
+                                ? Icons.check_circle_outline
+                                : Icons.radio_button_unchecked,
+                            text:
+                                '${goal.title} - ${weeklyGoalStatusLabel(goal.status)}',
+                          ),
+                        ),
                 ],
               ),
             ),

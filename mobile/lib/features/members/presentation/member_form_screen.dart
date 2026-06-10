@@ -15,13 +15,21 @@ class _MemberFormScreenState extends State<MemberFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _roleController = TextEditingController();
+  final _instrumentsController = TextEditingController();
+  final _specialtiesController = TextEditingController();
+  final _stylesController = TextEditingController();
   final _availabilityController = TextEditingController();
+  final _cityController = TextEditingController();
 
   @override
   void dispose() {
     _nameController.dispose();
     _roleController.dispose();
+    _instrumentsController.dispose();
+    _specialtiesController.dispose();
+    _stylesController.dispose();
     _availabilityController.dispose();
+    _cityController.dispose();
     super.dispose();
   }
 
@@ -44,8 +52,20 @@ class _MemberFormScreenState extends State<MemberFormScreen> {
         name: _nameController.text.trim(),
         role: _roleController.text.trim(),
         availability: _availabilityController.text.trim(),
+        instruments: _splitList(_instrumentsController.text),
+        specialties: _splitList(_specialtiesController.text),
+        styles: _splitList(_stylesController.text),
+        city: _cityController.text.trim(),
       ),
     );
+  }
+
+  List<String> _splitList(String value) {
+    return value
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
   }
 
   @override
@@ -78,21 +98,61 @@ class _MemberFormScreenState extends State<MemberFormScreen> {
                 controller: _roleController,
                 textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(
-                  labelText: 'Funcao',
+                  labelText: 'Especialidade principal',
                   hintText: 'Ex.: Baixista',
                 ),
-                validator: (value) => _required(value, 'a funcao'),
+                validator: (value) =>
+                    _required(value, 'a especialidade principal'),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _instrumentsController,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Instrumentos',
+                  hintText: 'Ex.: Baixo, violao, voz',
+                ),
+                validator: (value) => _required(value, 'os instrumentos'),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _specialtiesController,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Especialidades',
+                  hintText: 'Ex.: Arranjo, composicao',
+                ),
+                validator: (value) => _required(value, 'as especialidades'),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _stylesController,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Estilos musicais',
+                  hintText: 'Ex.: Pop Rock, Neo Soul',
+                ),
+                validator: (value) => _required(value, 'os estilos musicais'),
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _availabilityController,
-                textInputAction: TextInputAction.done,
-                onFieldSubmitted: (_) => _submit(),
+                textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(
                   labelText: 'Disponibilidade',
                   hintText: 'Ex.: Sextas a noite',
                 ),
                 validator: (value) => _required(value, 'a disponibilidade'),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _cityController,
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) => _submit(),
+                decoration: const InputDecoration(
+                  labelText: 'Cidade/localidade',
+                  hintText: 'Opcional',
+                ),
               ),
               const SizedBox(height: 24),
               SizedBox(

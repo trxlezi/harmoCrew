@@ -1,17 +1,30 @@
-# mobile
+# HarmoCrew Mobile
 
-A new Flutter project.
+Aplicativo Flutter usado para apresentar os fluxos principais do HarmoCrew.
 
-## Getting Started
+O app usa dados locais em memoria para demonstrar:
 
-This project is a starting point for a Flutter application.
+- login e cadastro;
+- painel inicial;
+- projetos e candidaturas;
+- talentos e integrantes;
+- tarefas e Kanban;
+- ensaios;
+- comunicacao;
+- decisoes;
+- metas semanais;
+- responsabilidades por projeto.
 
-A few resources to get you started if this is your first Flutter project:
+## Como executar
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```powershell
+flutter pub get
+flutter run
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Tambem e possivel abrir esta pasta no Android Studio e executar o arquivo
+`lib/main.dart`.
+
+## Observacao
+
+Os dados sao mockados e voltam ao estado inicial ao reiniciar o aplicativo.
