@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/widgets/app_scaffold.dart';
+import '../../../core/api/api_config.dart';
 import '../../auth/data/mock_auth_store.dart';
 import '../../collaboration/models/application.dart';
 import '../../collaboration/screens/decisions_screen.dart';
@@ -23,6 +24,13 @@ class ProjectsScreen extends StatefulWidget {
 
 class _ProjectsScreenState extends State<ProjectsScreen> {
   final MockCollaborationStore _store = MockCollaborationStore.instance;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProjects();
+  }
 
   void _showProjectDetails(BuildContext context, Project project) {
     showModalBottomSheet<void>(
@@ -134,7 +142,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     final availabilityController = TextEditingController();
     final user = MockAuthStore.currentUser;
     final artistName = user?.name ?? 'Artista convidado';
-    final artistId = user?.email ?? 'artista-local';
+    final fallbackArtistId = _store.artists.isEmpty
+        ? null
+        : _store.artists.first.id;
+    final artistId =
+        user?.artistId ?? fallbackArtistId ?? user?.email ?? 'artista-local';
 
     String? requiredField(String? value, String label) {
       if (value == null || value.trim().isEmpty) {
@@ -210,28 +222,52 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           if (!formKey.currentState!.validate()) {
                             return;
                           }
 
-                          setState(() {
-                            _store.addApplication(
-                              Application(
-                                id: 'application-${DateTime.now().microsecondsSinceEpoch}',
-                                projectId: project.title,
-                                artistId: artistId,
-                                message: messageController.text.trim(),
-                                specialty: specialtyController.text.trim(),
-                                availability: availabilityController.text
-                                    .trim(),
-                                status: ApplicationStatus.pending,
-                                createdAt: DateTime.now()
-                                    .toIso8601String()
-                                    .substring(0, 10),
-                              ),
+                          final application = Application(
+                            id: 'application-${DateTime.now().microsecondsSinceEpoch}',
+                            projectId:
+                                _collaborationProjectId(project.title) ??
+                                project.title,
+                            artistId: artistId,
+                            message: messageController.text.trim(),
+                            specialty: specialtyController.text.trim(),
+                            availability: availabilityController.text.trim(),
+                            status: ApplicationStatus.pending,
+                            createdAt: DateTime.now()
+                                .toIso8601String()
+                                .substring(0, 10),
+                          );
+
+                          try {
+                            if (ApiConfig.useMocks) {
+                              setState(
+                                () => _store.addApplication(application),
+                              );
+                            } else {
+                              await _store.createApplicationFromApi(
+                                application,
+                              );
+                              if (mounted) {
+                                setState(() {});
+                              }
+                            }
+                          } catch (error) {
+                            if (!context.mounted) {
+                              return;
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(error.toString())),
                             );
-                          });
+                            return;
+                          }
+
+                          if (!context.mounted || !sheetContext.mounted) {
+                            return;
+                          }
 
                           Navigator.pop(sheetContext);
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -253,10 +289,34 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     );
   }
 
-  void _updateApplicationStatus(String id, ApplicationStatus status) {
-    setState(() {
-      _store.updateApplicationStatus(id, status);
-    });
+  Future<void> _updateApplicationStatus(
+    String id,
+    ApplicationStatus status,
+  ) async {
+    try {
+      if (ApiConfig.useMocks) {
+        setState(() {
+          _store.updateApplicationStatus(id, status);
+        });
+      } else {
+        await _store.updateApplicationStatusFromApi(id, status);
+        if (mounted) {
+          setState(() {});
+        }
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -267,9 +327,46 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     );
   }
 
+  Future<void> _loadProjects() async {
+    if (ApiConfig.useMocks) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await _store.syncCoreFromApi();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final projects = MockProjects.all();
+    final projects = ApiConfig.useMocks
+        ? MockProjects.all()
+        : _store.projects
+              .map(
+                (project) => Project(
+                  title: project.title,
+                  style: project.style,
+                  summary: project.summary,
+                  status: project.status,
+                  needs: project.needs,
+                ),
+              )
+              .toList(growable: false);
     final applications = _store.applications;
 
     return AppScaffold(
@@ -303,6 +400,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             ),
           ),
           const SizedBox(height: 20),
+          if (_isLoading) ...[
+            const LinearProgressIndicator(),
+            const SizedBox(height: 20),
+          ],
           ...projects.map(
             (project) => Padding(
               padding: const EdgeInsets.only(bottom: 16),

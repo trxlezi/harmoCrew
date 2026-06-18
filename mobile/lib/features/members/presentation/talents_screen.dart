@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/api/api_config.dart';
 import '../../collaboration/models/artist_profile.dart';
 import '../../collaboration/models/project.dart';
 import '../../collaboration/stores/mock_collaboration_store.dart';
@@ -24,6 +25,13 @@ class _TalentsScreenState extends State<TalentsScreen> {
   String? _instrumentFilter;
   String? _styleFilter;
   String? _availabilityFilter;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadArtists();
+  }
 
   @override
   void dispose() {
@@ -41,27 +49,74 @@ class _TalentsScreenState extends State<TalentsScreen> {
       return;
     }
 
-    setState(() {
-      _store.addArtist(
-        ArtistProfile(
-          id: 'artist-${DateTime.now().microsecondsSinceEpoch}',
-          name: result.name,
-          email: '',
-          bio: 'Perfil cadastrado localmente para demonstracao.',
-          specialties: result.specialties.isEmpty
-              ? [result.role]
-              : result.specialties,
-          availability: result.availability,
-          instruments: result.instruments,
-          styles: result.styles,
-          city: result.city,
-        ),
-      );
-    });
+    try {
+      if (ApiConfig.useMocks) {
+        setState(() {
+          _store.addArtist(
+            ArtistProfile(
+              id: 'artist-${DateTime.now().microsecondsSinceEpoch}',
+              name: result.name,
+              email: '',
+              bio: 'Perfil cadastrado localmente para demonstracao.',
+              specialties: result.specialties.isEmpty
+                  ? [result.role]
+                  : result.specialties,
+              availability: result.availability,
+              instruments: result.instruments,
+              styles: result.styles,
+              city: result.city,
+            ),
+          );
+        });
+      } else {
+        final artist = await _store.createArtistFromApi(result);
+        if (!mounted) {
+          return;
+        }
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${artist.name} cadastrado via API.')),
+        );
+        return;
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${result.name} cadastrado em Talentos.')),
     );
+  }
+
+  Future<void> _loadArtists() async {
+    if (ApiConfig.useMocks) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await _store.syncCoreFromApi();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -88,6 +143,10 @@ class _TalentsScreenState extends State<TalentsScreen> {
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 18),
+          if (_isLoading) ...[
+            const LinearProgressIndicator(),
+            const SizedBox(height: 18),
+          ],
           TextField(
             controller: _searchController,
             decoration: const InputDecoration(

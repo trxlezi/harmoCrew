@@ -33,24 +33,46 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
-  void _submit() {
+  bool _isSubmitting = false;
+
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    final user = MockAuthStore.login(
-      email: _emailController.text,
-      password: _passwordController.text,
-    );
+    setState(() => _isSubmitting = true);
 
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email ou senha invalidos.')),
+    try {
+      final user = await MockAuthStore.login(
+        email: _emailController.text,
+        password: _passwordController.text,
       );
-      return;
-    }
 
-    Navigator.pushReplacementNamed(context, HomeScreen.routeName);
+      if (!mounted) {
+        return;
+      }
+
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Email ou senha invalidos.')),
+        );
+        return;
+      }
+
+      Navigator.pushReplacementNamed(context, HomeScreen.routeName);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   @override
@@ -118,8 +140,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: _submit,
-                            child: const Text('Entrar'),
+                            onPressed: _isSubmitting ? null : _submit,
+                            child: _isSubmitting
+                                ? const SizedBox.square(
+                                    dimension: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text('Entrar'),
                           ),
                         ),
                         const SizedBox(height: 12),

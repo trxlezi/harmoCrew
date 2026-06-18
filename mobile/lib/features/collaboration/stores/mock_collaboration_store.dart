@@ -1,4 +1,6 @@
 import '../data/mock_collaboration_data.dart';
+import '../data/application_api_service.dart';
+import '../data/task_api_service.dart';
 import '../models/application.dart';
 import '../models/artist_profile.dart';
 import '../models/collaboration_message.dart';
@@ -7,6 +9,9 @@ import '../models/project.dart';
 import '../models/project_task.dart';
 import '../models/rehearsal.dart';
 import '../models/weekly_goal.dart';
+import '../../members/data/artist_api_service.dart';
+import '../../members/domain/member.dart';
+import '../../projects/data/project_api_service.dart';
 
 class MockCollaborationStore {
   MockCollaborationStore({
@@ -55,6 +60,11 @@ class MockCollaborationStore {
 
   static final MockCollaborationStore instance =
       MockCollaborationStore.seeded();
+
+  final ArtistApiService _artistApiService = ArtistApiService();
+  final ProjectApiService _projectApiService = ProjectApiService();
+  final TaskApiService _taskApiService = TaskApiService();
+  final ApplicationApiService _applicationApiService = ApplicationApiService();
 
   final List<ArtistProfile> _artists;
   final List<Project> _projects;
@@ -273,6 +283,62 @@ class MockCollaborationStore {
 
   void updateWeeklyGoalStatus(String id, WeeklyGoalStatus status) {
     _replaceWeeklyGoal(id, (goal) => goal.copyWith(status: status));
+  }
+
+  Future<void> syncCoreFromApi() async {
+    final artists = await _artistApiService.listArtists();
+    final projects = await _projectApiService.listProjects();
+    final tasks = await _taskApiService.listTasks();
+    final applications = await _applicationApiService.listApplications();
+
+    _artists
+      ..clear()
+      ..addAll(artists);
+    _projects
+      ..clear()
+      ..addAll(projects);
+    _tasks
+      ..clear()
+      ..addAll(tasks);
+    _applications
+      ..clear()
+      ..addAll(applications);
+  }
+
+  Future<ArtistProfile> createArtistFromApi(Member member) async {
+    final artist = await _artistApiService.createArtist(member);
+    addArtist(artist);
+    return artist;
+  }
+
+  Future<ProjectTask> createTaskFromApi(ProjectTask task) async {
+    final created = await _taskApiService.createTask(task);
+    addTask(created);
+    return created;
+  }
+
+  Future<ProjectTask> updateTaskStatusFromApi(
+    String id,
+    ProjectTaskStatus status,
+  ) async {
+    final updated = await _taskApiService.updateStatus(id, status);
+    _replaceTask(id, (_) => updated);
+    return updated;
+  }
+
+  Future<Application> createApplicationFromApi(Application application) async {
+    final created = await _applicationApiService.createApplication(application);
+    addApplication(created);
+    return created;
+  }
+
+  Future<Application> updateApplicationStatusFromApi(
+    String id,
+    ApplicationStatus status,
+  ) async {
+    final updated = await _applicationApiService.updateStatus(id, status);
+    _replaceApplication(id, (_) => updated);
+    return updated;
   }
 
   void removeWeeklyGoal(String id) {

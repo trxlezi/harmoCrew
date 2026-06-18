@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/api/api_config.dart';
 import '../models/application.dart';
 import '../stores/mock_collaboration_store.dart';
 import '../widgets/collaboration_ui.dart';
@@ -15,17 +16,70 @@ class ApplicationsScreen extends StatefulWidget {
 
 class _ApplicationsScreenState extends State<ApplicationsScreen> {
   final MockCollaborationStore _store = MockCollaborationStore.instance;
+  bool _isLoading = false;
 
-  void _updateStatus(String id, ApplicationStatus status) {
-    setState(() {
-      _store.updateApplicationStatus(id, status);
-    });
+  @override
+  void initState() {
+    super.initState();
+    _loadApplications();
+  }
+
+  Future<void> _updateStatus(String id, ApplicationStatus status) async {
+    try {
+      if (ApiConfig.useMocks) {
+        setState(() {
+          _store.updateApplicationStatus(id, status);
+        });
+      } else {
+        await _store.updateApplicationStatusFromApi(id, status);
+        if (mounted) {
+          setState(() {});
+        }
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Candidatura marcada como ${_statusLabel(status)}.'),
       ),
     );
+  }
+
+  Future<void> _loadApplications() async {
+    if (ApiConfig.useMocks) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await _store.syncCoreFromApi();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -47,6 +101,10 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 20),
+          if (_isLoading) ...[
+            const LinearProgressIndicator(),
+            const SizedBox(height: 20),
+          ],
           if (applications.isEmpty)
             const EmptyState(
               icon: Icons.inbox_outlined,

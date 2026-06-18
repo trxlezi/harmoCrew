@@ -1,4 +1,7 @@
+import '../../../core/api/api_config.dart';
+import '../../../core/api/api_session.dart';
 import '../domain/auth_user.dart';
+import 'auth_api_service.dart';
 
 class MockAuthStore {
   MockAuthStore._();
@@ -13,7 +16,18 @@ class MockAuthStore {
 
   static AuthUser? currentUser;
 
-  static AuthUser? login({required String email, required String password}) {
+  static final AuthApiService _api = AuthApiService();
+
+  static Future<AuthUser?> login({
+    required String email,
+    required String password,
+  }) async {
+    if (!ApiConfig.useMocks) {
+      final user = await _api.login(email: email, password: password);
+      currentUser = user;
+      return user;
+    }
+
     try {
       final user = _users.firstWhere(
         (user) =>
@@ -26,11 +40,20 @@ class MockAuthStore {
     }
   }
 
-  static bool register({
+  static Future<bool> register({
     required String name,
     required String email,
     required String password,
-  }) {
+  }) async {
+    if (!ApiConfig.useMocks) {
+      currentUser = await _api.register(
+        name: name,
+        email: email,
+        password: password,
+      );
+      return true;
+    }
+
     final normalizedEmail = email.trim().toLowerCase();
     final alreadyExists = _users.any(
       (user) => user.email.toLowerCase() == normalizedEmail,
@@ -50,7 +73,12 @@ class MockAuthStore {
     return true;
   }
 
-  static void logout() {
+  static Future<void> logout() async {
+    if (!ApiConfig.useMocks && ApiSession.isAuthenticated) {
+      await _api.logout();
+    }
+
+    ApiSession.clear();
     currentUser = null;
   }
 }

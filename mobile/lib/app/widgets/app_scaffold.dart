@@ -215,8 +215,22 @@ class AppScaffold extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.logout),
                 title: const Text('Sair'),
-                onTap: () {
-                  MockAuthStore.logout();
+                onTap: () async {
+                  try {
+                    await MockAuthStore.logout();
+                  } catch (error) {
+                    if (!context.mounted) {
+                      return;
+                    }
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(error.toString())));
+                  }
+
+                  if (!context.mounted) {
+                    return;
+                  }
+
                   Navigator.pushNamedAndRemoveUntil(
                     context,
                     LoginScreen.routeName,

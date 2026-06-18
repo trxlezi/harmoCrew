@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/api/api_config.dart';
 import '../models/artist_profile.dart';
 import '../models/project.dart';
 import '../models/project_task.dart';
@@ -20,6 +21,7 @@ class _TasksScreenState extends State<TasksScreen> {
 
   String? _selectedProjectId;
   bool _readInitialArguments = false;
+  bool _isLoading = false;
 
   @override
   void didChangeDependencies() {
@@ -33,6 +35,7 @@ class _TasksScreenState extends State<TasksScreen> {
       _store,
     );
     _readInitialArguments = true;
+    _loadTasks();
   }
 
   List<ProjectTask> get _visibleTasks {
@@ -186,26 +189,44 @@ class _TasksScreenState extends State<TasksScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
                               if (!formKey.currentState!.validate()) {
                                 return;
                               }
 
-                              setState(() {
-                                _store.addTask(
-                                  ProjectTask(
-                                    id: 'task-${DateTime.now().microsecondsSinceEpoch}',
-                                    projectId: selectedProject!.id,
-                                    title: titleController.text.trim(),
-                                    assignedToArtistId: selectedArtist!.id,
-                                    dueDate: dueDateController.text.trim(),
-                                    priority: selectedPriority!,
-                                    status: ProjectTaskStatus.todo,
-                                    description: descriptionController.text
-                                        .trim(),
-                                  ),
+                              final task = ProjectTask(
+                                id: 'task-${DateTime.now().microsecondsSinceEpoch}',
+                                projectId: selectedProject!.id,
+                                title: titleController.text.trim(),
+                                assignedToArtistId: selectedArtist!.id,
+                                dueDate: dueDateController.text.trim(),
+                                priority: selectedPriority!,
+                                status: ProjectTaskStatus.todo,
+                                description: descriptionController.text.trim(),
+                              );
+
+                              try {
+                                if (ApiConfig.useMocks) {
+                                  setState(() => _store.addTask(task));
+                                } else {
+                                  await _store.createTaskFromApi(task);
+                                  if (mounted) {
+                                    setState(() {});
+                                  }
+                                }
+                              } catch (error) {
+                                if (!context.mounted) {
+                                  return;
+                                }
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(error.toString())),
                                 );
-                              });
+                                return;
+                              }
+
+                              if (!context.mounted || !sheetContext.mounted) {
+                                return;
+                              }
 
                               Navigator.pop(sheetContext);
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -229,14 +250,60 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  void _updateStatus(String taskId, ProjectTaskStatus status) {
-    setState(() {
-      _store.updateTaskStatus(taskId, status);
-    });
+  Future<void> _updateStatus(String taskId, ProjectTaskStatus status) async {
+    try {
+      if (ApiConfig.useMocks) {
+        setState(() {
+          _store.updateTaskStatus(taskId, status);
+        });
+      } else {
+        await _store.updateTaskStatusFromApi(taskId, status);
+        if (mounted) {
+          setState(() {});
+        }
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Tarefa marcada como ${statusLabel(status)}.')),
     );
+  }
+
+  Future<void> _loadTasks() async {
+    if (ApiConfig.useMocks) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await _store.syncCoreFromApi();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -263,6 +330,10 @@ class _TasksScreenState extends State<TasksScreen> {
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 16),
+          if (_isLoading) ...[
+            const LinearProgressIndicator(),
+            const SizedBox(height: 16),
+          ],
           ProjectSelector(
             value: _selectedProjectId,
             projects: _store.projects,
