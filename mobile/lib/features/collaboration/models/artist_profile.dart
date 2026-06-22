@@ -1,4 +1,12 @@
 class ArtistProfile {
+  /*
+   * Model usado pelo Flutter para exibir artistas.
+   *
+   * id e o id do Artist.
+   * userId e opcional e aponta para o User dono desse Artist.
+   * Essa diferenca e importante porque login autentica User, mas colaboracao usa
+   * Artist como autor/participante.
+   */
   const ArtistProfile({
     required this.id,
     required this.name,

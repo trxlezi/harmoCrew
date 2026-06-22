@@ -24,6 +24,13 @@ class ProjectsScreen extends StatefulWidget {
 }
 
 class _ProjectsScreenState extends State<ProjectsScreen> {
+  /*
+   * Tela de projetos do mobile.
+   *
+   * Ela mostra projetos vindos da API, permite criar novo projeto e permite
+   * criar candidaturas. Tambem serve como entrada para tarefas, kanban, ensaios,
+   * decisoes e responsabilidades.
+   */
   final CollaborationStore _store = CollaborationStore.instance;
   bool _isLoading = false;
 
@@ -121,6 +128,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }
 
   String? _collaborationProjectId(String projectTitle) {
+    /*
+     * A tela visual usa Project do modulo projects/domain, enquanto a store usa
+     * Project do modulo collaboration. Este helper liga os dois pelo titulo para
+     * abrir telas filhas com o id real do backend.
+     */
     for (final project in _store.projects) {
       if (project.title == projectTitle) {
         return project.id;
@@ -139,6 +151,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }
 
   void _showProjectForm() {
+    /*
+     * Bottom sheet de criacao de projeto.
+     * Os controllers guardam os valores dos campos ate o usuario clicar salvar.
+     */
     final formKey = GlobalKey<FormState>();
     final titleController = TextEditingController();
     final styleController = TextEditingController();
@@ -277,6 +293,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                               }
 
                               final project = collaboration.Project(
+                                /*
+                                 * id vazio porque quem gera o id definitivo e o
+                                 * backend/PostgreSQL. A resposta da API volta
+                                 * com o id real e a store adiciona esse objeto.
+                                 */
                                 id: '',
                                 title: titleController.text.trim(),
                                 style: styleController.text.trim(),
@@ -330,6 +351,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }
 
   void _showApplicationForm(BuildContext context, Project project) {
+    /*
+     * Candidatura e o fluxo em que um artista demonstra interesse em participar
+     * de um projeto. O campo artistId precisa ser o artista do usuario logado.
+     */
     final formKey = GlobalKey<FormState>();
     final messageController = TextEditingController();
     final specialtyController = TextEditingController();
@@ -417,6 +442,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                             return;
                           }
                           if (artistId == null) {
+                            /*
+                             * Mesmo cuidado da tela de mensagens: se nao sabemos
+                             * qual Artist pertence ao usuario, nao enviamos para
+                             * evitar candidatura em nome de outra pessoa.
+                             */
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
@@ -482,6 +512,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }
 
   String? _currentArtistId() {
+    /*
+     * Mesmo algoritmo da tela de mensagens:
+     * 1. usa artistId vindo do login/cadastro;
+     * 2. se necessario, encontra o Artist pelo userId;
+     * 3. se nao encontrar, retorna null e bloqueia o envio.
+     */
     final user = AuthStore.currentUser;
     if (user == null) {
       return null;

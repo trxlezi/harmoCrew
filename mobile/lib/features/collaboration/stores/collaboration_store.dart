@@ -17,6 +17,16 @@ import '../../members/domain/member.dart';
 import '../../projects/data/project_api_service.dart';
 
 class CollaborationStore {
+  /*
+   * Store compartilhada das telas de colaboracao.
+   *
+   * Ela funciona como um estado central em memoria: artistas, projetos,
+   * candidaturas, tarefas, ensaios, decisoes, mensagens e metas ficam aqui.
+   * As telas leem estes getters e chamam os metodos create/update/sync.
+   *
+   * Importante para explicar: a store nao e banco de dados local. Ela e um
+   * cache temporario do que veio da API e e atualizada sempre que sincronizamos.
+   */
   CollaborationStore({
     required List<ArtistProfile> artists,
     required List<Project> projects,
@@ -50,6 +60,10 @@ class CollaborationStore {
 
   static final CollaborationStore instance = CollaborationStore.empty();
 
+  /*
+   * Cada ApiService conhece um conjunto de endpoints REST.
+   * A store junta todos para oferecer uma interface unica para as telas.
+   */
   final ArtistApiService _artistApiService = ArtistApiService();
   final ProjectApiService _projectApiService = ProjectApiService();
   final TaskApiService _taskApiService = TaskApiService();
@@ -185,7 +199,8 @@ class CollaborationStore {
 
   void addArtist(ArtistProfile artist) => _artists.add(artist);
   void addProject(Project project) => _projects.add(project);
-  void addApplication(Application application) => _applications.add(application);
+  void addApplication(Application application) =>
+      _applications.add(application);
   void addTask(ProjectTask task) => _tasks.add(task);
 
   void editProject(
@@ -229,6 +244,13 @@ class CollaborationStore {
   }
 
   Future<void> syncAll() async {
+    /*
+     * Sincronizacao geral com a API.
+     *
+     * Este metodo busca todos os recursos principais. Depois limpa as listas
+     * locais e substitui pelo retorno real do backend. Isso evita misturar dado
+     * antigo com dado novo depois de criar/editar registros.
+     */
     final artists = await _artistApiService.listArtists();
     final projects = await _projectApiService.listProjects();
     final tasks = await _taskApiService.listTasks();
@@ -275,6 +297,7 @@ class CollaborationStore {
   }
 
   Future<Project> createProjectFromApi(Project project) async {
+    // Cria no backend primeiro; so adiciona na lista local se a API confirmar.
     final created = await _projectApiService.createProject(project);
     addProject(created);
     return created;
@@ -325,9 +348,7 @@ class CollaborationStore {
     return updated;
   }
 
-  Future<DecisionRecord> createDecisionFromApi(
-    DecisionRecord decision,
-  ) async {
+  Future<DecisionRecord> createDecisionFromApi(DecisionRecord decision) async {
     final created = await _decisionApiService.createDecision(decision);
     _decisions.add(created);
     return created;
@@ -345,6 +366,7 @@ class CollaborationStore {
   Future<CollaborationMessage> createMessageFromApi(
     CollaborationMessage message,
   ) async {
+    // Mantem a UI consistente com o registro que o backend salvou e devolveu.
     final created = await _messageApiService.createMessage(message);
     _messages.add(created);
     return created;

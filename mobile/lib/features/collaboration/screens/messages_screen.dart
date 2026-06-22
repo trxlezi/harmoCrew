@@ -17,6 +17,10 @@ class MessagesScreen extends StatefulWidget {
 }
 
 class _MessagesScreenState extends State<MessagesScreen> {
+  /*
+   * A tela usa a store singleton para acessar projetos, artistas e mensagens.
+   * O TextEditingController guarda o texto digitado ate o usuario enviar.
+   */
   final CollaborationStore _store = CollaborationStore.instance;
   final TextEditingController _messageController = TextEditingController();
 
@@ -37,6 +41,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Future<void> _sendMessage() async {
+    /*
+     * Fluxo de envio:
+     * 1. valida texto;
+     * 2. garante que existe projeto;
+     * 3. descobre o artistId do usuario logado;
+     * 4. chama a API pelo CollaborationStore.
+     */
     final content = _messageController.text.trim();
     if (content.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -55,6 +66,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
     final projectId = _selectedProjectId ?? _store.projects.first.id;
     final senderArtistId = _currentArtistId();
     if (senderArtistId == null) {
+      /*
+       * Este bloqueio evita o bug de autoria errada.
+       * Antes, quando artistId nao existia, o app podia usar o primeiro artista
+       * da lista. Agora ele para e avisa o usuario.
+       */
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Nao foi possivel identificar o artista logado.'),
@@ -97,6 +113,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Future<void> _loadData() async {
+    // Ao abrir a tela, buscamos dados reais da API para listar mensagens atuais.
     setState(() => _isLoading = true);
     try {
       await _store.syncAll();
@@ -229,6 +246,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   String _artistName(String artistId) {
+    /*
+     * Na exibicao, se a mensagem pertence ao usuario logado, mostramos o nome da
+     * sessao atual. Caso contrario, buscamos o nome na lista de artistas.
+     */
     final currentUser = AuthStore.currentUser;
     if (currentUser?.artistId == artistId || _currentArtistId() == artistId) {
       return currentUser!.name;
@@ -250,6 +271,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   String? _currentArtistId() {
+    /*
+     * Resolve o artista do usuario autenticado.
+     *
+     * Caminho principal: AuthResponse ja vem com artistId.
+     * Caminho de compatibilidade: se houver userId mas nao artistId, procuramos
+     * o Artist cujo userId seja igual ao userId da sessao.
+     */
     final user = AuthStore.currentUser;
     if (user == null) {
       return null;

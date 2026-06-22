@@ -2,6 +2,13 @@ import '../../../core/api/api_client.dart';
 import '../../collaboration/models/project.dart';
 
 class ProjectApiService {
+  /*
+   * Service dos projetos musicais.
+   *
+   * A tela cria um Project do Flutter. Este service transforma para o JSON que
+   * a API Spring espera: title, description, musicalStyle, status, needs e
+   * startDate.
+   */
   ProjectApiService({ApiClient? client}) : _client = client ?? ApiClient();
 
   final ApiClient _client;
@@ -15,6 +22,7 @@ class ProjectApiService {
   }
 
   Future<Project> createProject(Project project) async {
+    // POST /api/projects cria o projeto real no banco PostgreSQL.
     final response =
         await _client.post(
               '/api/projects',
@@ -35,6 +43,7 @@ class ProjectApiService {
 }
 
 Project projectFromJson(Map<String, dynamic> json) {
+  // Traduz campos do backend para o model de colaboracao usado nas telas.
   return Project(
     id: (json['id'] ?? '').toString(),
     title: (json['title'] ?? '').toString(),
@@ -48,6 +57,10 @@ Project projectFromJson(Map<String, dynamic> json) {
 }
 
 String _projectStatusForApi(String status) {
+  /*
+   * Protecao contra status invalido vindo de UI/teste.
+   * O backend aceita somente estes valores do enum; caso contrario usamos ACTIVE.
+   */
   final normalized = status.trim().toUpperCase();
   if (normalized == 'ACTIVE' ||
       normalized == 'PAUSED' ||

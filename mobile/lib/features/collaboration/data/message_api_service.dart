@@ -2,11 +2,20 @@ import '../../../core/api/api_client.dart';
 import '../models/collaboration_message.dart';
 
 class MessageApiService {
+  /*
+   * Service das mensagens no mobile.
+   *
+   * Ele chama os endpoints:
+   * - GET /api/messages
+   * - GET /api/projects/{id}/messages
+   * - POST /api/projects/{id}/messages
+   */
   MessageApiService({ApiClient? client}) : _client = client ?? ApiClient();
 
   final ApiClient _client;
 
   Future<List<CollaborationMessage>> listMessages({String? projectId}) async {
+    // Se projectId vier nulo, lista geral; se vier preenchido, filtra projeto.
     final path = projectId == null
         ? '/api/messages'
         : '/api/projects/$projectId/messages';
@@ -20,6 +29,10 @@ class MessageApiService {
   Future<CollaborationMessage> createMessage(
     CollaborationMessage message,
   ) async {
+    /*
+     * O backend espera senderArtistId numerico. Por isso a tela precisa resolver
+     * corretamente o artistId do usuario antes de chegar aqui.
+     */
     final response =
         await _client.post(
               '/api/projects/${message.projectId}/messages',
@@ -35,6 +48,7 @@ class MessageApiService {
 }
 
 CollaborationMessage messageFromJson(Map<String, dynamic> json) {
+  // Converte a resposta da API para o model usado pela interface Flutter.
   return CollaborationMessage(
     id: (json['id'] ?? '').toString(),
     projectId: (json['projectId'] ?? '').toString(),
@@ -46,6 +60,7 @@ CollaborationMessage messageFromJson(Map<String, dynamic> json) {
 }
 
 CollaborationMessageType _typeFromApi(String value) {
+  // A API usa enum em ingles/maiúsculo; o app usa enum Dart.
   return switch (value) {
     'NOTICE' => CollaborationMessageType.notice,
     'DECISION' => CollaborationMessageType.decision,
