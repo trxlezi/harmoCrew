@@ -14,10 +14,7 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = AuthStore.currentUser;
     final store = CollaborationStore.instance;
-    final matchingArtists = store.artists
-        .where((artist) => artist.email == user?.email)
-        .toList();
-    final artistId = matchingArtists.isEmpty ? null : matchingArtists.first.id;
+    final artistId = user?.artistId ?? _artistIdForUser(store, user?.userId);
     final goals = store.weeklyGoalsForArtist(artistId);
     final initials = (user?.name ?? 'Marina Costa')
         .split(' ')
@@ -137,6 +134,20 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+String? _artistIdForUser(CollaborationStore store, String? userId) {
+  if (userId == null || userId.isEmpty) {
+    return null;
+  }
+
+  for (final artist in store.artists) {
+    if (artist.userId == userId) {
+      return artist.id;
+    }
+  }
+
+  return null;
 }
 
 class _InfoRow extends StatelessWidget {

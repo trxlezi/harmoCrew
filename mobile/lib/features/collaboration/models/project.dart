@@ -7,6 +7,7 @@ class Project {
     required this.status,
     required this.ownerArtistId,
     required this.needs,
+    this.startDate = '',
   });
 
   final String id;
@@ -16,6 +17,7 @@ class Project {
   final String status;
   final String ownerArtistId;
   final List<String> needs;
+  final String startDate;
 
   Project copyWith({
     String? id,
@@ -25,6 +27,7 @@ class Project {
     String? status,
     String? ownerArtistId,
     List<String>? needs,
+    String? startDate,
   }) {
     return Project(
       id: id ?? this.id,
@@ -34,6 +37,7 @@ class Project {
       status: status ?? this.status,
       ownerArtistId: ownerArtistId ?? this.ownerArtistId,
       needs: needs ?? this.needs,
+      startDate: startDate ?? this.startDate,
     );
   }
 }

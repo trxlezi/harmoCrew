@@ -24,7 +24,9 @@ class ProjectApiService {
                 'musicalStyle': project.style,
                 'status': _projectStatusForApi(project.status),
                 'needs': project.needs,
-                'startDate': DateTime.now().toIso8601String().substring(0, 10),
+                'startDate': project.startDate.isEmpty
+                    ? DateTime.now().toIso8601String().substring(0, 10)
+                    : project.startDate,
               },
             )
             as Map<String, dynamic>;
@@ -41,6 +43,7 @@ Project projectFromJson(Map<String, dynamic> json) {
     status: (json['status'] ?? '').toString(),
     ownerArtistId: '',
     needs: _stringList(json['needs']),
+    startDate: (json['startDate'] ?? '').toString(),
   );
 }
 

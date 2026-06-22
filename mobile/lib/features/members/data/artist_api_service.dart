@@ -41,6 +41,7 @@ ArtistProfile _artistFromJson(Map<String, dynamic> json) {
   return ArtistProfile(
     id: (json['id'] ?? '').toString(),
     name: (json['stageName'] ?? json['name'] ?? 'Artista').toString(),
+    userId: json['userId']?.toString(),
     email: (json['email'] ?? '').toString(),
     bio: (json['bio'] ?? '').toString(),
     specialties: mainSpecialty.isEmpty ? const [] : [mainSpecialty],

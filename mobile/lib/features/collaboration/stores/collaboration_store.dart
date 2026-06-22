@@ -274,6 +274,12 @@ class CollaborationStore {
     return artist;
   }
 
+  Future<Project> createProjectFromApi(Project project) async {
+    final created = await _projectApiService.createProject(project);
+    addProject(created);
+    return created;
+  }
+
   Future<ProjectTask> createTaskFromApi(ProjectTask task) async {
     final created = await _taskApiService.createTask(task);
     addTask(created);

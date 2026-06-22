@@ -53,12 +53,12 @@ class _MessagesScreenState extends State<MessagesScreen> {
     }
 
     final projectId = _selectedProjectId ?? _store.projects.first.id;
-    final user = AuthStore.currentUser;
-    final senderArtistId = user?.artistId ??
-        (_store.artists.isEmpty ? null : _store.artists.first.id);
+    final senderArtistId = _currentArtistId();
     if (senderArtistId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cadastre um artista antes de enviar.')),
+        const SnackBar(
+          content: Text('Nao foi possivel identificar o artista logado.'),
+        ),
       );
       return;
     }
@@ -91,9 +91,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Mensagem enviada.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Mensagem enviada.')));
   }
 
   Future<void> _loadData() async {
@@ -230,7 +230,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   String _artistName(String artistId) {
     final currentUser = AuthStore.currentUser;
-    if (currentUser?.email == artistId) {
+    if (currentUser?.artistId == artistId || _currentArtistId() == artistId) {
       return currentUser!.name;
     }
 
@@ -247,6 +247,29 @@ class _MessagesScreenState extends State<MessagesScreen> {
           ),
         )
         .name;
+  }
+
+  String? _currentArtistId() {
+    final user = AuthStore.currentUser;
+    if (user == null) {
+      return null;
+    }
+
+    if (user.artistId != null && user.artistId!.isNotEmpty) {
+      return user.artistId;
+    }
+
+    if (user.userId == null || user.userId!.isEmpty) {
+      return null;
+    }
+
+    for (final artist in _store.artists) {
+      if (artist.userId == user.userId) {
+        return artist.id;
+      }
+    }
+
+    return null;
   }
 }
 

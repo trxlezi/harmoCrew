@@ -2,6 +2,7 @@ class ArtistProfile {
   const ArtistProfile({
     required this.id,
     required this.name,
+    this.userId,
     required this.email,
     required this.bio,
     required this.specialties,
@@ -13,6 +14,7 @@ class ArtistProfile {
 
   final String id;
   final String name;
+  final String? userId;
   final String email;
   final String bio;
   final List<String> specialties;
@@ -24,6 +26,7 @@ class ArtistProfile {
   ArtistProfile copyWith({
     String? id,
     String? name,
+    String? userId,
     String? email,
     String? bio,
     List<String>? specialties,
@@ -35,6 +38,7 @@ class ArtistProfile {
     return ArtistProfile(
       id: id ?? this.id,
       name: name ?? this.name,
+      userId: userId ?? this.userId,
       email: email ?? this.email,
       bio: bio ?? this.bio,
       specialties: specialties ?? this.specialties,
