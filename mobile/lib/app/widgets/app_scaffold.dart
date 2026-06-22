@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../features/auth/data/mock_auth_store.dart';
+import '../../features/auth/data/auth_store.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/collaboration/screens/applications_screen.dart';
 import '../../features/collaboration/screens/collaboration_screen.dart';
@@ -82,7 +82,7 @@ class AppScaffold extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      'Prototipo academico com dados locais',
+                      'Prototipo academico conectado a API',
                       style: TextStyle(color: Colors.white70),
                     ),
                   ],
@@ -181,7 +181,7 @@ class AppScaffold extends StatelessWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.info_outline),
-                title: const Text('Colaboracao mockada'),
+                title: const Text('Colaboracao'),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.pushNamed(context, CollaborationScreen.routeName);
@@ -198,8 +198,8 @@ class AppScaffold extends StatelessWidget {
                     arguments: const DetailsArguments(
                       title: 'Equipe harmoCrew',
                       description:
-                          'Fluxo demonstrativo com navegacao, dados mockados '
-                          'e telas reais para defesa academica.',
+                          'Fluxo demonstrativo com navegacao, API real '
+                          'e telas para defesa academica.',
                     ),
                   );
                 },
@@ -217,7 +217,7 @@ class AppScaffold extends StatelessWidget {
                 title: const Text('Sair'),
                 onTap: () async {
                   try {
-                    await MockAuthStore.logout();
+                    await AuthStore.logout();
                   } catch (error) {
                     if (!context.mounted) {
                       return;

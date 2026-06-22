@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/artist_profile.dart';
 import '../models/decision_record.dart';
 import '../models/project.dart';
-import '../stores/mock_collaboration_store.dart';
+import '../stores/collaboration_store.dart';
 import '../widgets/collaboration_ui.dart';
 
 class DecisionsScreen extends StatefulWidget {
@@ -16,10 +16,11 @@ class DecisionsScreen extends StatefulWidget {
 }
 
 class _DecisionsScreenState extends State<DecisionsScreen> {
-  final MockCollaborationStore _store = MockCollaborationStore.instance;
+  final CollaborationStore _store = CollaborationStore.instance;
 
   String? _selectedProjectId;
   bool _readInitialArguments = false;
+  bool _isLoading = false;
 
   @override
   void didChangeDependencies() {
@@ -33,6 +34,7 @@ class _DecisionsScreenState extends State<DecisionsScreen> {
       _store,
     );
     _readInitialArguments = true;
+    _loadData();
   }
 
   void _showDecisionForm() {
@@ -154,19 +156,18 @@ class _DecisionsScreenState extends State<DecisionsScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
                               if (!formKey.currentState!.validate()) {
                                 return;
                               }
 
-                              setState(() {
-                                _store.addDecision(
+                              try {
+                                await _store.createDecisionFromApi(
                                   DecisionRecord(
-                                    id: 'decision-${DateTime.now().microsecondsSinceEpoch}',
+                                    id: '',
                                     projectId: selectedProject!.id,
                                     title: titleController.text.trim(),
-                                    description: descriptionController.text
-                                        .trim(),
+                                    description: descriptionController.text.trim(),
                                     decidedByArtistId: selectedArtist!.id,
                                     decidedAt: DateTime.now()
                                         .toIso8601String()
@@ -175,7 +176,22 @@ class _DecisionsScreenState extends State<DecisionsScreen> {
                                     status: DecisionStatus.registered,
                                   ),
                                 );
-                              });
+                                if (mounted) {
+                                  setState(() {});
+                                }
+                              } catch (error) {
+                                if (!context.mounted) {
+                                  return;
+                                }
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(error.toString())),
+                                );
+                                return;
+                              }
+
+                              if (!mounted || !sheetContext.mounted) {
+                                return;
+                              }
 
                               Navigator.pop(sheetContext);
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -201,16 +217,52 @@ class _DecisionsScreenState extends State<DecisionsScreen> {
     );
   }
 
-  void _updateStatus(String decisionId, DecisionStatus status) {
-    setState(() {
-      _store.updateDecisionStatus(decisionId, status);
-    });
+  Future<void> _updateStatus(String decisionId, DecisionStatus status) async {
+    try {
+      await _store.updateDecisionStatusFromApi(decisionId, status);
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Decisao marcada como ${decisionStatusLabel(status)}.'),
       ),
     );
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      await _store.syncAll();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -237,6 +289,10 @@ class _DecisionsScreenState extends State<DecisionsScreen> {
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 16),
+          if (_isLoading) ...[
+            const LinearProgressIndicator(),
+            const SizedBox(height: 16),
+          ],
           ProjectSelector(
             value: _selectedProjectId,
             projects: _store.projects,
@@ -321,7 +377,7 @@ class _DecisionsScreenState extends State<DecisionsScreen> {
   }
 }
 
-String? _safeProjectId(Object? arguments, MockCollaborationStore store) {
+String? _safeProjectId(Object? arguments, CollaborationStore store) {
   if (arguments is! String) {
     return null;
   }

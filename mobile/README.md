@@ -2,29 +2,34 @@
 
 Aplicativo Flutter usado para apresentar os fluxos principais do HarmoCrew.
 
-O app usa dados locais em memoria para demonstrar:
-
-- login e cadastro;
-- painel inicial;
-- projetos e candidaturas;
-- talentos e integrantes;
-- tarefas e Kanban;
-- ensaios;
-- comunicacao;
-- decisoes;
-- metas semanais;
-- responsabilidades por projeto.
+O app consome a API real do projeto. O backend precisa estar em execucao.
 
 ## Como executar
 
+Suba o backend antes de abrir o app:
+
 ```powershell
-flutter pub get
-flutter run
+cd ..\..\api-harmocrew
+docker compose -f docker-compose.nginx.yml up --build
 ```
 
-Tambem e possivel abrir esta pasta no Android Studio e executar o arquivo
-`lib/main.dart`.
+Depois rode o mobile:
 
-## Observacao
+```powershell
+cd ..\harmoCrew\mobile
+flutter pub get
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
+```
 
-Os dados sao mockados e voltam ao estado inicial ao reiniciar o aplicativo.
+Para desktop/navegador, use:
+
+```powershell
+flutter run --dart-define=API_BASE_URL=http://localhost:8080
+```
+
+## Validacao
+
+```powershell
+flutter analyze
+flutter test
+```

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/api/api_config.dart';
 import '../../collaboration/models/artist_profile.dart';
 import '../../collaboration/models/project.dart';
-import '../../collaboration/stores/mock_collaboration_store.dart';
+import '../../collaboration/stores/collaboration_store.dart';
 import '../../collaboration/widgets/collaboration_ui.dart';
 import '../domain/member.dart';
 import 'artist_detail_screen.dart';
@@ -19,7 +18,7 @@ class TalentsScreen extends StatefulWidget {
 }
 
 class _TalentsScreenState extends State<TalentsScreen> {
-  final MockCollaborationStore _store = MockCollaborationStore.instance;
+  final CollaborationStore _store = CollaborationStore.instance;
   final TextEditingController _searchController = TextEditingController();
 
   String? _instrumentFilter;
@@ -50,35 +49,15 @@ class _TalentsScreenState extends State<TalentsScreen> {
     }
 
     try {
-      if (ApiConfig.useMocks) {
-        setState(() {
-          _store.addArtist(
-            ArtistProfile(
-              id: 'artist-${DateTime.now().microsecondsSinceEpoch}',
-              name: result.name,
-              email: '',
-              bio: 'Perfil cadastrado localmente para demonstracao.',
-              specialties: result.specialties.isEmpty
-                  ? [result.role]
-                  : result.specialties,
-              availability: result.availability,
-              instruments: result.instruments,
-              styles: result.styles,
-              city: result.city,
-            ),
-          );
-        });
-      } else {
-        final artist = await _store.createArtistFromApi(result);
-        if (!mounted) {
-          return;
-        }
-        setState(() {});
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${artist.name} cadastrado via API.')),
-        );
+      final artist = await _store.createArtistFromApi(result);
+      if (!mounted) {
         return;
       }
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${artist.name} cadastrado via API.')),
+      );
+      return;
     } catch (error) {
       if (!mounted) {
         return;
@@ -88,17 +67,9 @@ class _TalentsScreenState extends State<TalentsScreen> {
       ).showSnackBar(SnackBar(content: Text(error.toString())));
       return;
     }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${result.name} cadastrado em Talentos.')),
-    );
   }
 
   Future<void> _loadArtists() async {
-    if (ApiConfig.useMocks) {
-      return;
-    }
-
     setState(() => _isLoading = true);
     try {
       await _store.syncCoreFromApi();
@@ -404,7 +375,7 @@ String _joinOrFallback(List<String> values) {
 }
 
 List<Project> relatedProjectsForArtist(
-  MockCollaborationStore store,
+  CollaborationStore store,
   ArtistProfile artist,
 ) {
   return store.projects

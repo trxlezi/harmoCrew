@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../stores/mock_collaboration_store.dart';
+import '../stores/collaboration_store.dart';
 
 class CollaborationSummaryCard extends StatelessWidget {
   const CollaborationSummaryCard({super.key, required this.store});
 
-  final MockCollaborationStore store;
+  final CollaborationStore store;
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +16,7 @@ class CollaborationSummaryCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Colaboracao mockada',
+              'Colaboracao',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 12),

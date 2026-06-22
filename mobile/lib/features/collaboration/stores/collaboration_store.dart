@@ -1,6 +1,9 @@
-import '../data/mock_collaboration_data.dart';
 import '../data/application_api_service.dart';
+import '../data/decision_api_service.dart';
+import '../data/message_api_service.dart';
+import '../data/rehearsal_api_service.dart';
 import '../data/task_api_service.dart';
+import '../data/weekly_goal_api_service.dart';
 import '../models/application.dart';
 import '../models/artist_profile.dart';
 import '../models/collaboration_message.dart';
@@ -13,8 +16,8 @@ import '../../members/data/artist_api_service.dart';
 import '../../members/domain/member.dart';
 import '../../projects/data/project_api_service.dart';
 
-class MockCollaborationStore {
-  MockCollaborationStore({
+class CollaborationStore {
+  CollaborationStore({
     required List<ArtistProfile> artists,
     required List<Project> projects,
     required List<Application> applications,
@@ -32,8 +35,8 @@ class MockCollaborationStore {
        _messages = List<CollaborationMessage>.from(messages),
        _weeklyGoals = List<WeeklyGoal>.from(weeklyGoals);
 
-  factory MockCollaborationStore.empty() {
-    return MockCollaborationStore(
+  factory CollaborationStore.empty() {
+    return CollaborationStore(
       artists: [],
       projects: [],
       applications: [],
@@ -45,26 +48,16 @@ class MockCollaborationStore {
     );
   }
 
-  factory MockCollaborationStore.seeded() {
-    return MockCollaborationStore(
-      artists: MockCollaborationData.artists(),
-      projects: MockCollaborationData.projects(),
-      applications: MockCollaborationData.applications(),
-      tasks: MockCollaborationData.tasks(),
-      rehearsals: MockCollaborationData.rehearsals(),
-      decisions: MockCollaborationData.decisions(),
-      messages: MockCollaborationData.messages(),
-      weeklyGoals: MockCollaborationData.weeklyGoals(),
-    );
-  }
-
-  static final MockCollaborationStore instance =
-      MockCollaborationStore.seeded();
+  static final CollaborationStore instance = CollaborationStore.empty();
 
   final ArtistApiService _artistApiService = ArtistApiService();
   final ProjectApiService _projectApiService = ProjectApiService();
   final TaskApiService _taskApiService = TaskApiService();
   final ApplicationApiService _applicationApiService = ApplicationApiService();
+  final RehearsalApiService _rehearsalApiService = RehearsalApiService();
+  final DecisionApiService _decisionApiService = DecisionApiService();
+  final MessageApiService _messageApiService = MessageApiService();
+  final WeeklyGoalApiService _weeklyGoalApiService = WeeklyGoalApiService();
 
   final List<ArtistProfile> _artists;
   final List<Project> _projects;
@@ -192,13 +185,8 @@ class MockCollaborationStore {
 
   void addArtist(ArtistProfile artist) => _artists.add(artist);
   void addProject(Project project) => _projects.add(project);
-  void addApplication(Application application) =>
-      _applications.add(application);
+  void addApplication(Application application) => _applications.add(application);
   void addTask(ProjectTask task) => _tasks.add(task);
-  void addRehearsal(Rehearsal rehearsal) => _rehearsals.add(rehearsal);
-  void addDecision(DecisionRecord decision) => _decisions.add(decision);
-  void addMessage(CollaborationMessage message) => _messages.add(message);
-  void addWeeklyGoal(WeeklyGoal goal) => _weeklyGoals.add(goal);
 
   void editProject(
     String id, {
@@ -240,56 +228,15 @@ class MockCollaborationStore {
     );
   }
 
-  void updateApplicationStatus(String id, ApplicationStatus status) {
-    _replaceApplication(
-      id,
-      (application) => application.copyWith(status: status),
-    );
-  }
-
-  void updateTaskStatus(String id, ProjectTaskStatus status) {
-    _replaceTask(id, (task) => task.copyWith(status: status));
-  }
-
-  void updateRehearsalStatus(String id, RehearsalStatus status) {
-    _replaceRehearsal(id, (rehearsal) => rehearsal.copyWith(status: status));
-  }
-
-  void updateDecisionStatus(String id, DecisionStatus status) {
-    _replaceDecision(id, (decision) => decision.copyWith(status: status));
-  }
-
-  void editWeeklyGoal(
-    String id, {
-    String? title,
-    String? description,
-    String? ownerArtistId,
-    String? weekLabel,
-    String? dueDate,
-    WeeklyGoalStatus? status,
-  }) {
-    _replaceWeeklyGoal(
-      id,
-      (goal) => goal.copyWith(
-        title: title,
-        description: description,
-        ownerArtistId: ownerArtistId,
-        weekLabel: weekLabel,
-        dueDate: dueDate,
-        status: status,
-      ),
-    );
-  }
-
-  void updateWeeklyGoalStatus(String id, WeeklyGoalStatus status) {
-    _replaceWeeklyGoal(id, (goal) => goal.copyWith(status: status));
-  }
-
-  Future<void> syncCoreFromApi() async {
+  Future<void> syncAll() async {
     final artists = await _artistApiService.listArtists();
     final projects = await _projectApiService.listProjects();
     final tasks = await _taskApiService.listTasks();
     final applications = await _applicationApiService.listApplications();
+    final rehearsals = await _rehearsalApiService.listRehearsals();
+    final decisions = await _decisionApiService.listDecisions();
+    final messages = await _messageApiService.listMessages();
+    final weeklyGoals = await _weeklyGoalApiService.listWeeklyGoals();
 
     _artists
       ..clear()
@@ -303,6 +250,22 @@ class MockCollaborationStore {
     _applications
       ..clear()
       ..addAll(applications);
+    _rehearsals
+      ..clear()
+      ..addAll(rehearsals);
+    _decisions
+      ..clear()
+      ..addAll(decisions);
+    _messages
+      ..clear()
+      ..addAll(messages);
+    _weeklyGoals
+      ..clear()
+      ..addAll(weeklyGoals);
+  }
+
+  Future<void> syncCoreFromApi() {
+    return syncAll();
   }
 
   Future<ArtistProfile> createArtistFromApi(Member member) async {
@@ -341,7 +304,69 @@ class MockCollaborationStore {
     return updated;
   }
 
-  void removeWeeklyGoal(String id) {
+  Future<Rehearsal> createRehearsalFromApi(Rehearsal rehearsal) async {
+    final created = await _rehearsalApiService.createRehearsal(rehearsal);
+    _rehearsals.add(created);
+    return created;
+  }
+
+  Future<Rehearsal> updateRehearsalStatusFromApi(
+    String id,
+    RehearsalStatus status,
+  ) async {
+    final updated = await _rehearsalApiService.updateStatus(id, status);
+    _replaceRehearsal(id, (_) => updated);
+    return updated;
+  }
+
+  Future<DecisionRecord> createDecisionFromApi(
+    DecisionRecord decision,
+  ) async {
+    final created = await _decisionApiService.createDecision(decision);
+    _decisions.add(created);
+    return created;
+  }
+
+  Future<DecisionRecord> updateDecisionStatusFromApi(
+    String id,
+    DecisionStatus status,
+  ) async {
+    final updated = await _decisionApiService.updateStatus(id, status);
+    _replaceDecision(id, (_) => updated);
+    return updated;
+  }
+
+  Future<CollaborationMessage> createMessageFromApi(
+    CollaborationMessage message,
+  ) async {
+    final created = await _messageApiService.createMessage(message);
+    _messages.add(created);
+    return created;
+  }
+
+  Future<WeeklyGoal> createWeeklyGoalFromApi(WeeklyGoal goal) async {
+    final created = await _weeklyGoalApiService.createWeeklyGoal(goal);
+    _weeklyGoals.add(created);
+    return created;
+  }
+
+  Future<WeeklyGoal> updateWeeklyGoalFromApi(WeeklyGoal goal) async {
+    final updated = await _weeklyGoalApiService.updateWeeklyGoal(goal);
+    _replaceWeeklyGoal(goal.id, (_) => updated);
+    return updated;
+  }
+
+  Future<WeeklyGoal> updateWeeklyGoalStatusFromApi(
+    String id,
+    WeeklyGoalStatus status,
+  ) async {
+    final updated = await _weeklyGoalApiService.updateStatus(id, status);
+    _replaceWeeklyGoal(id, (_) => updated);
+    return updated;
+  }
+
+  Future<void> removeWeeklyGoalFromApi(String id) async {
+    await _weeklyGoalApiService.deleteWeeklyGoal(id);
     _weeklyGoals.removeWhere((goal) => goal.id == id);
   }
 

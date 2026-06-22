@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/api/api_config.dart';
 import '../models/artist_profile.dart';
 import '../models/project.dart';
 import '../models/project_task.dart';
-import '../stores/mock_collaboration_store.dart';
+import '../stores/collaboration_store.dart';
 import '../widgets/collaboration_ui.dart' hide priorityLabel;
 
 class TasksScreen extends StatefulWidget {
@@ -17,7 +16,7 @@ class TasksScreen extends StatefulWidget {
 }
 
 class _TasksScreenState extends State<TasksScreen> {
-  final MockCollaborationStore _store = MockCollaborationStore.instance;
+  final CollaborationStore _store = CollaborationStore.instance;
 
   String? _selectedProjectId;
   bool _readInitialArguments = false;
@@ -206,13 +205,9 @@ class _TasksScreenState extends State<TasksScreen> {
                               );
 
                               try {
-                                if (ApiConfig.useMocks) {
-                                  setState(() => _store.addTask(task));
-                                } else {
-                                  await _store.createTaskFromApi(task);
-                                  if (mounted) {
-                                    setState(() {});
-                                  }
+                                await _store.createTaskFromApi(task);
+                                if (mounted) {
+                                  setState(() {});
                                 }
                               } catch (error) {
                                 if (!context.mounted) {
@@ -252,15 +247,9 @@ class _TasksScreenState extends State<TasksScreen> {
 
   Future<void> _updateStatus(String taskId, ProjectTaskStatus status) async {
     try {
-      if (ApiConfig.useMocks) {
-        setState(() {
-          _store.updateTaskStatus(taskId, status);
-        });
-      } else {
-        await _store.updateTaskStatusFromApi(taskId, status);
-        if (mounted) {
-          setState(() {});
-        }
+      await _store.updateTaskStatusFromApi(taskId, status);
+      if (mounted) {
+        setState(() {});
       }
     } catch (error) {
       if (!mounted) {
@@ -282,10 +271,6 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   Future<void> _loadTasks() async {
-    if (ApiConfig.useMocks) {
-      return;
-    }
-
     setState(() => _isLoading = true);
     try {
       await _store.syncCoreFromApi();
@@ -416,7 +401,7 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 }
 
-String? _safeProjectId(Object? arguments, MockCollaborationStore store) {
+String? _safeProjectId(Object? arguments, CollaborationStore store) {
   if (arguments is! String) {
     return null;
   }

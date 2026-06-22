@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/artist_profile.dart';
 import '../models/project.dart';
 import '../models/rehearsal.dart';
-import '../stores/mock_collaboration_store.dart';
+import '../stores/collaboration_store.dart';
 import '../widgets/collaboration_ui.dart';
 
 class RehearsalsScreen extends StatefulWidget {
@@ -16,10 +16,11 @@ class RehearsalsScreen extends StatefulWidget {
 }
 
 class _RehearsalsScreenState extends State<RehearsalsScreen> {
-  final MockCollaborationStore _store = MockCollaborationStore.instance;
+  final CollaborationStore _store = CollaborationStore.instance;
 
   String? _selectedProjectId;
   bool _readInitialArguments = false;
+  bool _isLoading = false;
 
   @override
   void didChangeDependencies() {
@@ -33,6 +34,7 @@ class _RehearsalsScreenState extends State<RehearsalsScreen> {
       _store,
     );
     _readInitialArguments = true;
+    _loadData();
   }
 
   void _showRehearsalForm() {
@@ -213,7 +215,7 @@ class _RehearsalsScreenState extends State<RehearsalsScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
                               if (!formKey.currentState!.validate()) {
                                 return;
                               }
@@ -230,10 +232,10 @@ class _RehearsalsScreenState extends State<RehearsalsScreen> {
                                 return;
                               }
 
-                              setState(() {
-                                _store.addRehearsal(
+                              try {
+                                await _store.createRehearsalFromApi(
                                   Rehearsal(
-                                    id: 'rehearsal-${DateTime.now().microsecondsSinceEpoch}',
+                                    id: '',
                                     projectId: selectedProject!.id,
                                     title: 'Ensaio - ${selectedProject!.title}',
                                     date: _formatDate(selectedDate!),
@@ -245,7 +247,22 @@ class _RehearsalsScreenState extends State<RehearsalsScreen> {
                                     status: RehearsalStatus.scheduled,
                                   ),
                                 );
-                              });
+                                if (mounted) {
+                                  setState(() {});
+                                }
+                              } catch (error) {
+                                if (!context.mounted) {
+                                  return;
+                                }
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(error.toString())),
+                                );
+                                return;
+                              }
+
+                              if (!mounted || !sheetContext.mounted) {
+                                return;
+                              }
 
                               Navigator.pop(sheetContext);
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -269,16 +286,52 @@ class _RehearsalsScreenState extends State<RehearsalsScreen> {
     );
   }
 
-  void _updateStatus(String rehearsalId, RehearsalStatus status) {
-    setState(() {
-      _store.updateRehearsalStatus(rehearsalId, status);
-    });
+  Future<void> _updateStatus(String rehearsalId, RehearsalStatus status) async {
+    try {
+      await _store.updateRehearsalStatusFromApi(rehearsalId, status);
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Ensaio marcado como ${rehearsalStatusLabel(status)}.'),
       ),
     );
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      await _store.syncAll();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -302,6 +355,10 @@ class _RehearsalsScreenState extends State<RehearsalsScreen> {
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 20),
+          if (_isLoading) ...[
+            const LinearProgressIndicator(),
+            const SizedBox(height: 20),
+          ],
           ProjectSelector(
             value: _selectedProjectId,
             projects: _store.projects,
@@ -388,7 +445,7 @@ class _RehearsalsScreenState extends State<RehearsalsScreen> {
   }
 }
 
-String? _safeProjectId(Object? arguments, MockCollaborationStore store) {
+String? _safeProjectId(Object? arguments, CollaborationStore store) {
   if (arguments is! String) {
     return null;
   }

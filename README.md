@@ -13,18 +13,13 @@ docs/     materiais auxiliares
 
 ## App mobile
 
-O foco da apresentacao esta no app Flutter em `mobile/`. Ele usa dados locais
-mockados para demonstrar os fluxos colaborativos sem depender de servidor.
+O foco da apresentacao esta no app Flutter em `mobile/`. Ele consome a API real
+do projeto, portanto o backend precisa estar em execucao.
 
 Para executar:
 
 ```powershell
 cd mobile
 flutter pub get
-flutter run
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
 ```
-
-## Dados
-
-No app mobile, os dados criados durante o uso ficam apenas em memoria. Ao
-reiniciar, o aplicativo volta para os dados iniciais.

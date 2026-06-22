@@ -6,7 +6,7 @@ import '../models/project.dart';
 import '../models/project_task.dart';
 import '../models/rehearsal.dart';
 import '../models/weekly_goal.dart';
-import '../stores/mock_collaboration_store.dart';
+import '../stores/collaboration_store.dart';
 import '../widgets/collaboration_ui.dart';
 import 'decisions_screen.dart';
 import 'rehearsals_screen.dart';
@@ -23,7 +23,7 @@ class ResponsibilitiesScreen extends StatefulWidget {
 }
 
 class _ResponsibilitiesScreenState extends State<ResponsibilitiesScreen> {
-  final MockCollaborationStore _store = MockCollaborationStore.instance;
+  final CollaborationStore _store = CollaborationStore.instance;
 
   String? _selectedProjectId;
   bool _readInitialArguments = false;
@@ -229,7 +229,7 @@ class _ProjectOwnersCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = MockCollaborationStore.instance;
+    final store = CollaborationStore.instance;
     final owners = <String>{
       project.ownerArtistId,
       ...store
@@ -413,7 +413,7 @@ class _ResponsibilityItem extends StatelessWidget {
   }
 }
 
-String? _safeProjectId(Object? arguments, MockCollaborationStore store) {
+String? _safeProjectId(Object? arguments, CollaborationStore store) {
   if (arguments is! String) {
     return null;
   }

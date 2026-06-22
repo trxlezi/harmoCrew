@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_auth_store.dart';
+import '../data/auth_store.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -43,7 +43,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      final success = await MockAuthStore.register(
+      final success = await AuthStore.register(
         name: _nameController.text,
         email: _emailController.text,
         password: _passwordController.text,
@@ -100,7 +100,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'Monte seu acesso com dados mockados para simular o onboarding principal do projeto.',
+                          'Monte seu acesso para usar os fluxos conectados a API do projeto.',
                           style: Theme.of(context).textTheme.bodyLarge,
                         ),
                         const SizedBox(height: 24),

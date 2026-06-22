@@ -13,13 +13,11 @@ import '../../collaboration/screens/messages_screen.dart';
 import '../../collaboration/screens/rehearsals_screen.dart';
 import '../../collaboration/screens/tasks_screen.dart';
 import '../../collaboration/screens/weekly_goals_screen.dart';
-import '../../collaboration/stores/mock_collaboration_store.dart';
+import '../../collaboration/stores/collaboration_store.dart';
 import '../../collaboration/widgets/collaboration_summary_card.dart';
 import '../../details/presentation/details_screen.dart';
-import '../../members/data/mock_members.dart';
 import '../../members/domain/member.dart';
 import '../../members/presentation/member_form_screen.dart';
-import '../../projects/data/mock_projects.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,12 +29,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late final List<Member> _members;
+  final CollaborationStore _store = CollaborationStore.instance;
 
   @override
   void initState() {
     super.initState();
-    _members = List<Member>.from(MockMembers.seed());
+    _loadData();
   }
 
   Future<void> _openMemberForm() async {
@@ -49,24 +47,24 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    setState(() {
-      _members.add(result);
-      MockCollaborationStore.instance.addArtist(
-        ArtistProfile(
-          id: 'artist-${DateTime.now().microsecondsSinceEpoch}',
-          name: result.name,
-          email: '',
-          bio: 'Perfil cadastrado localmente pela tela inicial.',
-          specialties: result.specialties.isEmpty
-              ? [result.role]
-              : result.specialties,
-          availability: result.availability,
-          instruments: result.instruments,
-          styles: result.styles,
-          city: result.city,
-        ),
-      );
-    });
+    try {
+      await _store.createArtistFromApi(result);
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${result.name} adicionado com sucesso.')),
@@ -79,17 +77,32 @@ class _HomeScreenState extends State<HomeScreen> {
       DetailsScreen.routeName,
       arguments: const DetailsArguments(
         title: 'Equipe harmoCrew',
-        description:
-            'Dados mockados enviados da tela inicial para comprovar '
-            'navegacao e passagem de parametros entre paginas.',
+        description: 'Tela conectada aos dados reais da API HarmoCrew.',
       ),
     );
   }
 
+  Future<void> _loadData() async {
+    try {
+      await _store.syncAll();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final projects = MockProjects.all();
-    final collaborationStore = MockCollaborationStore.instance;
+    final projects = _store.projects;
+    final members = _store.artists;
+    final collaborationStore = _store;
     final pendingApplications = collaborationStore.applications
         .where((application) => application.status == ApplicationStatus.pending)
         .length;
@@ -168,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         _HeroMetric(
                           label: 'Integrantes',
-                          value: _members.length.toString(),
+                          value: members.length.toString(),
                         ),
                         _HeroMetric(
                           label: 'Projetos ativos',
@@ -318,8 +331,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(height: 12),
                             const Text(
                               'Esta versao mobile prioriza os criterios '
-                              'academicos e simula os principais fluxos da '
-                              'plataforma com dados locais.',
+                              'academicos consumindo os fluxos reais da API '
+                              'HarmoCrew.',
                             ),
                             const SizedBox(height: 20),
                             if (useSplitLayout)
@@ -397,7 +410,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Integrantes mockados',
+                'Integrantes',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
@@ -405,7 +418,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
-                  children: _members
+                  children: members
                       .map(
                         (member) => SizedBox(
                           width: sectionWidth,
@@ -414,7 +427,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               leading: CircleAvatar(
                                 child: Text(member.name.substring(0, 1)),
                               ),
-                              title: Text('${member.name} - ${member.role}'),
+                              title: Text(
+                                '${member.name} - ${_artistRole(member)}',
+                              ),
                               subtitle: Text(member.availability),
                               trailing: const Icon(Icons.chevron_right),
                             ),
@@ -424,7 +439,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       .toList(),
                 )
               else
-                ..._members.map(
+                ...members.map(
                   (member) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Card(
@@ -432,7 +447,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         leading: CircleAvatar(
                           child: Text(member.name.substring(0, 1)),
                         ),
-                        title: Text('${member.name} - ${member.role}'),
+                        title: Text('${member.name} - ${_artistRole(member)}'),
                         subtitle: Text(member.availability),
                         trailing: const Icon(Icons.chevron_right),
                       ),
@@ -622,7 +637,7 @@ class _ActionRow extends StatelessWidget {
   }
 }
 
-List<_DashboardItem> _recentActivities(MockCollaborationStore store) {
+List<_DashboardItem> _recentActivities(CollaborationStore store) {
   final activities = <_DashboardItem>[];
 
   if (store.applications.isNotEmpty) {
@@ -683,7 +698,11 @@ List<_DashboardItem> _recentActivities(MockCollaborationStore store) {
   return activities;
 }
 
-List<_DashboardItem> _upcomingDeadlines(MockCollaborationStore store) {
+String _artistRole(ArtistProfile artist) {
+  return artist.specialties.isEmpty ? 'Artista' : artist.specialties.first;
+}
+
+List<_DashboardItem> _upcomingDeadlines(CollaborationStore store) {
   final items = <_DashboardItem>[];
 
   for (final task in store.tasks.where((task) {

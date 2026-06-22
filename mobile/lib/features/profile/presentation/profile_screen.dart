@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/widgets/app_scaffold.dart';
-import '../../auth/data/mock_auth_store.dart';
+import '../../auth/data/auth_store.dart';
 import '../../collaboration/screens/weekly_goals_screen.dart';
-import '../../collaboration/stores/mock_collaboration_store.dart';
+import '../../collaboration/stores/collaboration_store.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -12,8 +12,8 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = MockAuthStore.currentUser;
-    final store = MockCollaborationStore.instance;
+    final user = AuthStore.currentUser;
+    final store = CollaborationStore.instance;
     final matchingArtists = store.artists
         .where((artist) => artist.email == user?.email)
         .toList();

@@ -2,10 +2,11 @@
 
 ## Repositorios
 
-- frontend/mobile: `harmoCrew`
+- mobile/frontend: `harmoCrew`
 - backend/API: `api-harmocrew`
 
-Os repositorios continuam separados. O backend nao foi copiado para o frontend e o frontend nao foi copiado para o backend.
+Os repositorios continuam separados. O app Flutter consome a API real do
+backend e depende do servidor em execucao.
 
 ## Como subir backend
 
@@ -30,74 +31,43 @@ URLs:
 - Swagger: `http://localhost:8080/swagger-ui.html`
 - Swagger alternativo: `http://localhost:8080/swagger-ui/index.html`
 
-## Como rodar mobile integrado
+## Como rodar mobile
 
-Modo mock, padrao para demonstracao offline:
+Android Emulator:
 
 ```powershell
 cd mobile
 flutter pub get
-flutter run --dart-define=USE_MOCKS=true
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
 ```
 
-Modo API real no Android Emulator:
+Desktop/navegador:
 
 ```powershell
-flutter run --dart-define=USE_MOCKS=false --dart-define=API_BASE_URL=http://10.0.2.2:8080
-```
-
-Modo API real no desktop/navegador:
-
-```powershell
-flutter run --dart-define=USE_MOCKS=false --dart-define=API_BASE_URL=http://localhost:8080
+flutter run --dart-define=API_BASE_URL=http://localhost:8080
 ```
 
 Build APK:
 
 ```powershell
-flutter build apk --debug
+flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8080
 ```
 
-## Funcionalidades integradas
+## Funcionalidades conectadas
 
-- Auth:
-  - `POST /auth/register`
-  - `POST /auth/login`
-  - `POST /auth/logout`
-  - token JWT em memoria via `ApiSession`
-  - envio de `Authorization: Bearer TOKEN`
-- Artistas/Talentos:
-  - `GET /api/artists`
-  - `POST /api/artists`
-- Projetos:
-  - `GET /api/projects`
-- Tarefas:
-  - `GET /api/tasks`
-  - `GET /api/projects/{projectId}/tasks`
-  - `POST /api/projects/{projectId}/tasks`
-  - `PATCH /api/tasks/{id}/status`
-- Candidaturas:
-  - `GET /api/applications`
-  - `GET /api/projects/{projectId}/applications`
-  - `POST /api/projects/{projectId}/applications`
-  - `PATCH /api/applications/{id}/status`
+- Auth: cadastro, login, logout e token JWT.
+- Artistas/Talentos: listagem e cadastro.
+- Projetos: listagem.
+- Tarefas: listagem, criacao e status.
+- Candidaturas: listagem, criacao e status.
+- Ensaios: listagem, criacao e status.
+- Mensagens: listagem e envio.
+- Decisoes: listagem, criacao e status.
+- Metas semanais: listagem, criacao, edicao, status e exclusao.
+- Kanban, painel, perfil, talentos e detalhes usam a mesma store sincronizada
+  com a API.
 
-## Funcionalidades ainda mockadas
+## Observacoes
 
-- Ensaios
-- Mensagens
-- Decisoes
-- Metas semanais
-- Responsabilidades
-- Detalhes demonstrativos
-
-Essas telas continuam usando `MockCollaborationStore` como fallback academico e modo demonstracao.
-
-## Evidencias recomendadas
-
-- Print de `docker compose -f docker-compose.nginx.yml ps`.
-- Print do Swagger.
-- Print do app fazendo login com `USE_MOCKS=false`.
-- Print de Talentos/Projetos carregando dados da API.
-- Print de criacao de talento, tarefa ou candidatura com SnackBar.
-- Print de alteracao de status de tarefa ou candidatura.
+- `API_BASE_URL` e a unica configuracao de endpoint do mobile.
+- Fixtures ou dados artificiais devem ficar restritos a testes automatizados.

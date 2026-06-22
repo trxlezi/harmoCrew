@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/artist_profile.dart';
 import '../models/project.dart';
 import '../models/project_task.dart';
-import '../stores/mock_collaboration_store.dart';
+import '../stores/collaboration_store.dart';
 import '../widgets/collaboration_ui.dart' hide priorityLabel;
 import 'tasks_screen.dart';
 
@@ -17,11 +17,12 @@ class KanbanScreen extends StatefulWidget {
 }
 
 class _KanbanScreenState extends State<KanbanScreen> {
-  final MockCollaborationStore _store = MockCollaborationStore.instance;
+  final CollaborationStore _store = CollaborationStore.instance;
 
   String? _selectedProjectId;
   String? _selectedArtistId;
   bool _readInitialArguments = false;
+  bool _isLoading = false;
 
   @override
   void didChangeDependencies() {
@@ -35,6 +36,7 @@ class _KanbanScreenState extends State<KanbanScreen> {
       _store,
     );
     _readInitialArguments = true;
+    _loadData();
   }
 
   List<ProjectTask> _tasksFor(ProjectTaskStatus status) {
@@ -50,14 +52,50 @@ class _KanbanScreenState extends State<KanbanScreen> {
     }).toList();
   }
 
-  void _moveTask(ProjectTask task, ProjectTaskStatus status) {
-    setState(() {
-      _store.updateTaskStatus(task.id, status);
-    });
+  Future<void> _moveTask(ProjectTask task, ProjectTaskStatus status) async {
+    try {
+      await _store.updateTaskStatusFromApi(task.id, status);
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Tarefa movida para ${statusLabel(status)}.')),
     );
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      await _store.syncAll();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -88,6 +126,10 @@ class _KanbanScreenState extends State<KanbanScreen> {
                       setState(() => _selectedProjectId = projectId);
                     },
                   ),
+                  if (_isLoading) ...[
+                    const SizedBox(height: 12),
+                    const LinearProgressIndicator(),
+                  ],
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String?>(
                     initialValue: _selectedArtistId,
@@ -168,7 +210,7 @@ class _KanbanScreenState extends State<KanbanScreen> {
   }
 }
 
-String? _safeProjectId(Object? arguments, MockCollaborationStore store) {
+String? _safeProjectId(Object? arguments, CollaborationStore store) {
   if (arguments is! String) {
     return null;
   }

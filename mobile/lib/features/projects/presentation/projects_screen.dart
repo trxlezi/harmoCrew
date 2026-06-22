@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/widgets/app_scaffold.dart';
-import '../../../core/api/api_config.dart';
-import '../../auth/data/mock_auth_store.dart';
+import '../../auth/data/auth_store.dart';
 import '../../collaboration/models/application.dart';
 import '../../collaboration/screens/decisions_screen.dart';
 import '../../collaboration/screens/kanban_screen.dart';
 import '../../collaboration/screens/rehearsals_screen.dart';
 import '../../collaboration/screens/responsibilities_screen.dart';
 import '../../collaboration/screens/tasks_screen.dart';
-import '../../collaboration/stores/mock_collaboration_store.dart';
-import '../data/mock_projects.dart';
+import '../../collaboration/stores/collaboration_store.dart';
 import '../domain/project.dart';
 
 class ProjectsScreen extends StatefulWidget {
@@ -23,7 +21,7 @@ class ProjectsScreen extends StatefulWidget {
 }
 
 class _ProjectsScreenState extends State<ProjectsScreen> {
-  final MockCollaborationStore _store = MockCollaborationStore.instance;
+  final CollaborationStore _store = CollaborationStore.instance;
   bool _isLoading = false;
 
   @override
@@ -140,7 +138,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     final messageController = TextEditingController();
     final specialtyController = TextEditingController();
     final availabilityController = TextEditingController();
-    final user = MockAuthStore.currentUser;
+    final user = AuthStore.currentUser;
     final artistName = user?.name ?? 'Artista convidado';
     final fallbackArtistId = _store.artists.isEmpty
         ? null
@@ -243,17 +241,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                           );
 
                           try {
-                            if (ApiConfig.useMocks) {
-                              setState(
-                                () => _store.addApplication(application),
-                              );
-                            } else {
-                              await _store.createApplicationFromApi(
-                                application,
-                              );
-                              if (mounted) {
-                                setState(() {});
-                              }
+                            await _store.createApplicationFromApi(application);
+                            if (mounted) {
+                              setState(() {});
                             }
                           } catch (error) {
                             if (!context.mounted) {
@@ -294,15 +284,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     ApplicationStatus status,
   ) async {
     try {
-      if (ApiConfig.useMocks) {
-        setState(() {
-          _store.updateApplicationStatus(id, status);
-        });
-      } else {
-        await _store.updateApplicationStatusFromApi(id, status);
-        if (mounted) {
-          setState(() {});
-        }
+      await _store.updateApplicationStatusFromApi(id, status);
+      if (mounted) {
+        setState(() {});
       }
     } catch (error) {
       if (!mounted) {
@@ -328,10 +312,6 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }
 
   Future<void> _loadProjects() async {
-    if (ApiConfig.useMocks) {
-      return;
-    }
-
     setState(() => _isLoading = true);
     try {
       await _store.syncCoreFromApi();
@@ -354,19 +334,17 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final projects = ApiConfig.useMocks
-        ? MockProjects.all()
-        : _store.projects
-              .map(
-                (project) => Project(
-                  title: project.title,
-                  style: project.style,
-                  summary: project.summary,
-                  status: project.status,
-                  needs: project.needs,
-                ),
-              )
-              .toList(growable: false);
+    final projects = _store.projects
+        .map(
+          (project) => Project(
+            title: project.title,
+            style: project.style,
+            summary: project.summary,
+            status: project.status,
+            needs: project.needs,
+          ),
+        )
+        .toList(growable: false);
     final applications = _store.applications;
 
     return AppScaffold(
@@ -392,8 +370,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Lista mockada inspirada nas funcionalidades do harmoCrew '
-                  'original para demonstrar descoberta de oportunidades.',
+                  'Lista carregada da API HarmoCrew para descoberta de oportunidades.',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ],
@@ -543,7 +520,7 @@ class _ProjectDecisionsPreview extends StatelessWidget {
     required this.projectId,
   });
 
-  final MockCollaborationStore store;
+  final CollaborationStore store;
   final String? projectId;
 
   @override

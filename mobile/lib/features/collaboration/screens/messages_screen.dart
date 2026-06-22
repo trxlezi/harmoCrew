@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../auth/data/mock_auth_store.dart';
+import '../../auth/data/auth_store.dart';
 import '../models/artist_profile.dart';
 import '../models/collaboration_message.dart';
 import '../models/project.dart';
-import '../stores/mock_collaboration_store.dart';
+import '../stores/collaboration_store.dart';
 import '../widgets/collaboration_ui.dart';
 
 class MessagesScreen extends StatefulWidget {
@@ -17,11 +17,18 @@ class MessagesScreen extends StatefulWidget {
 }
 
 class _MessagesScreenState extends State<MessagesScreen> {
-  final MockCollaborationStore _store = MockCollaborationStore.instance;
+  final CollaborationStore _store = CollaborationStore.instance;
   final TextEditingController _messageController = TextEditingController();
 
   String? _selectedProjectId;
   CollaborationMessageType _selectedType = CollaborationMessageType.message;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
 
   @override
   void dispose() {
@@ -29,7 +36,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     super.dispose();
   }
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     final content = _messageController.text.trim();
     if (content.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -38,26 +45,76 @@ class _MessagesScreenState extends State<MessagesScreen> {
       return;
     }
 
-    final projectId = _selectedProjectId ?? _store.projects.first.id;
-    final user = MockAuthStore.currentUser;
+    if (_store.projects.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cadastre um projeto antes de enviar.')),
+      );
+      return;
+    }
 
-    setState(() {
-      _store.addMessage(
+    final projectId = _selectedProjectId ?? _store.projects.first.id;
+    final user = AuthStore.currentUser;
+    final senderArtistId = user?.artistId ??
+        (_store.artists.isEmpty ? null : _store.artists.first.id);
+    if (senderArtistId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cadastre um artista antes de enviar.')),
+      );
+      return;
+    }
+
+    try {
+      await _store.createMessageFromApi(
         CollaborationMessage(
-          id: 'message-${DateTime.now().microsecondsSinceEpoch}',
+          id: '',
           projectId: projectId,
-          senderArtistId: user?.email ?? 'artista-local',
+          senderArtistId: senderArtistId,
           content: content,
           sentAt: _formatDateTime(DateTime.now()),
           type: _selectedType,
         ),
       );
-      _messageController.clear();
-    });
+      if (mounted) {
+        setState(() => _messageController.clear());
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Mensagem enviada localmente.')),
+      const SnackBar(content: Text('Mensagem enviada.')),
     );
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      await _store.syncAll();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -79,6 +136,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     setState(() => _selectedProjectId = projectId);
                   },
                 ),
+                if (_isLoading) ...[
+                  const SizedBox(height: 12),
+                  const LinearProgressIndicator(),
+                ],
                 const SizedBox(height: 12),
                 DropdownButtonFormField<CollaborationMessageType>(
                   initialValue: _selectedType,
@@ -168,7 +229,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   String _artistName(String artistId) {
-    final currentUser = MockAuthStore.currentUser;
+    final currentUser = AuthStore.currentUser;
     if (currentUser?.email == artistId) {
       return currentUser!.name;
     }

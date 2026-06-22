@@ -67,7 +67,7 @@ class DetailsScreen extends StatelessWidget {
                       text: 'Uso consistente de widgets Material',
                     ),
                     const _DetailBullet(
-                      text: 'Conteudo mockado facil de defender',
+                      text: 'Conteudo conectado ao fluxo principal',
                     ),
                   ],
                 ),

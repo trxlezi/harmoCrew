@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../features/home/presentation/home_screen.dart';
-import '../data/mock_auth_store.dart';
+import '../data/auth_store.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -43,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      final user = await MockAuthStore.login(
+      final user = await AuthStore.login(
         email: _emailController.text,
         password: _passwordController.text,
       );

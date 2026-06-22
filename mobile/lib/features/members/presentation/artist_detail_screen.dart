@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../collaboration/models/artist_profile.dart';
 import '../../collaboration/models/project.dart';
-import '../../collaboration/stores/mock_collaboration_store.dart';
+import '../../collaboration/stores/collaboration_store.dart';
 import 'talents_screen.dart';
 
 class ArtistDetailScreen extends StatefulWidget {
@@ -15,7 +15,7 @@ class ArtistDetailScreen extends StatefulWidget {
 }
 
 class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
-  final MockCollaborationStore _store = MockCollaborationStore.instance;
+  final CollaborationStore _store = CollaborationStore.instance;
 
   void _inviteToProject(ArtistProfile artist) {
     Project? selectedProject = _store.projects.isEmpty
@@ -52,11 +52,12 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                   onPressed: selectedProject == null
                       ? null
                       : () {
+                          final project = selectedProject!;
                           Navigator.pop(dialogContext);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                '${artist.name} convidado para ${selectedProject!.title}.',
+                                '${artist.name} convidado para ${project.title}.',
                               ),
                             ),
                           );
@@ -133,7 +134,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
           _DetailSection(
             title: 'Projetos relacionados',
             child: relatedProjects.isEmpty
-                ? const Text('Nenhum projeto relacionado no mock local.')
+                ? const Text('Nenhum projeto relacionado encontrado.')
                 : Column(
                     children: relatedProjects
                         .map(

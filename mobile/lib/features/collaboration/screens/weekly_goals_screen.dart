@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/artist_profile.dart';
 import '../models/weekly_goal.dart';
-import '../stores/mock_collaboration_store.dart';
+import '../stores/collaboration_store.dart';
 import '../widgets/collaboration_ui.dart';
 
 class WeeklyGoalsScreen extends StatefulWidget {
@@ -15,7 +15,14 @@ class WeeklyGoalsScreen extends StatefulWidget {
 }
 
 class _WeeklyGoalsScreenState extends State<WeeklyGoalsScreen> {
-  final MockCollaborationStore _store = MockCollaborationStore.instance;
+  final CollaborationStore _store = CollaborationStore.instance;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
 
   void _showGoalForm({WeeklyGoal? goal}) {
     final formKey = GlobalKey<FormState>();
@@ -121,19 +128,32 @@ class _WeeklyGoalsScreenState extends State<WeeklyGoalsScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
                               if (!formKey.currentState!.validate()) {
                                 return;
                               }
 
                               final messenger = ScaffoldMessenger.of(context);
+                              final projectId = _store.projects.isEmpty
+                                  ? null
+                                  : _store.projects.first.id;
+                              if (projectId == null) {
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Cadastre um projeto antes de criar metas.',
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
 
                               if (goal == null) {
-                                setState(() {
-                                  _store.addWeeklyGoal(
+                                try {
+                                  await _store.createWeeklyGoalFromApi(
                                     WeeklyGoal(
-                                      id: 'goal-${DateTime.now().microsecondsSinceEpoch}',
-                                      projectId: 'general',
+                                      id: '',
+                                      projectId: projectId,
                                       title: titleController.text.trim(),
                                       description: descriptionController.text
                                           .trim(),
@@ -143,7 +163,19 @@ class _WeeklyGoalsScreenState extends State<WeeklyGoalsScreen> {
                                       status: WeeklyGoalStatus.planned,
                                     ),
                                   );
-                                });
+                                  if (mounted) {
+                                    setState(() {});
+                                  }
+                                } catch (error) {
+                                  messenger.showSnackBar(
+                                    SnackBar(content: Text(error.toString())),
+                                  );
+                                  return;
+                                }
+                                if (!mounted || !sheetContext.mounted) {
+                                  return;
+                                }
+
                                 Navigator.pop(sheetContext);
                                 messenger.showSnackBar(
                                   const SnackBar(
@@ -153,16 +185,28 @@ class _WeeklyGoalsScreenState extends State<WeeklyGoalsScreen> {
                                 return;
                               }
 
-                              setState(() {
-                                _store.editWeeklyGoal(
-                                  goal.id,
-                                  title: titleController.text.trim(),
-                                  description: descriptionController.text
-                                      .trim(),
-                                  ownerArtistId: selectedArtist!.id,
-                                  dueDate: dueDateController.text.trim(),
+                              try {
+                                await _store.updateWeeklyGoalFromApi(
+                                  goal.copyWith(
+                                    title: titleController.text.trim(),
+                                    description: descriptionController.text.trim(),
+                                    ownerArtistId: selectedArtist!.id,
+                                    dueDate: dueDateController.text.trim(),
+                                  ),
                                 );
-                              });
+                                if (mounted) {
+                                  setState(() {});
+                                }
+                              } catch (error) {
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text(error.toString())),
+                                );
+                                return;
+                              }
+                              if (!mounted || !sheetContext.mounted) {
+                                return;
+                              }
+
                               Navigator.pop(sheetContext);
                               messenger.showSnackBar(
                                 const SnackBar(
@@ -212,9 +256,24 @@ class _WeeklyGoalsScreenState extends State<WeeklyGoalsScreen> {
       return;
     }
 
-    setState(() {
-      _store.removeWeeklyGoal(goal.id);
-    });
+    try {
+      await _store.removeWeeklyGoalFromApi(goal.id);
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
 
     if (!mounted) {
       return;
@@ -225,18 +284,54 @@ class _WeeklyGoalsScreenState extends State<WeeklyGoalsScreen> {
     ).showSnackBar(const SnackBar(content: Text('Meta excluida com sucesso.')));
   }
 
-  void _updateStatus(WeeklyGoal goal, WeeklyGoalStatus status) {
-    setState(() {
-      _store.updateWeeklyGoalStatus(goal.id, status);
-    });
+  Future<void> _updateStatus(WeeklyGoal goal, WeeklyGoalStatus status) async {
+    try {
+      await _store.updateWeeklyGoalStatusFromApi(goal.id, status);
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      return;
+    }
 
     final message = status == WeeklyGoalStatus.done
         ? 'Meta concluida com sucesso.'
         : 'Meta atualizada com sucesso.';
 
+    if (!mounted) {
+      return;
+    }
+
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      await _store.syncAll();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -263,6 +358,10 @@ class _WeeklyGoalsScreenState extends State<WeeklyGoalsScreen> {
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 20),
+          if (_isLoading) ...[
+            const LinearProgressIndicator(),
+            const SizedBox(height: 20),
+          ],
           if (goals.isEmpty)
             const EmptyState(
               icon: Icons.flag_outlined,

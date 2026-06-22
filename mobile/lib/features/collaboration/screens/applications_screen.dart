@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/api/api_config.dart';
 import '../models/application.dart';
-import '../stores/mock_collaboration_store.dart';
+import '../stores/collaboration_store.dart';
 import '../widgets/collaboration_ui.dart';
 
 class ApplicationsScreen extends StatefulWidget {
@@ -15,7 +14,7 @@ class ApplicationsScreen extends StatefulWidget {
 }
 
 class _ApplicationsScreenState extends State<ApplicationsScreen> {
-  final MockCollaborationStore _store = MockCollaborationStore.instance;
+  final CollaborationStore _store = CollaborationStore.instance;
   bool _isLoading = false;
 
   @override
@@ -26,15 +25,9 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
 
   Future<void> _updateStatus(String id, ApplicationStatus status) async {
     try {
-      if (ApiConfig.useMocks) {
-        setState(() {
-          _store.updateApplicationStatus(id, status);
-        });
-      } else {
-        await _store.updateApplicationStatusFromApi(id, status);
-        if (mounted) {
-          setState(() {});
-        }
+      await _store.updateApplicationStatusFromApi(id, status);
+      if (mounted) {
+        setState(() {});
       }
     } catch (error) {
       if (!mounted) {
@@ -58,10 +51,6 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
   }
 
   Future<void> _loadApplications() async {
-    if (ApiConfig.useMocks) {
-      return;
-    }
-
     setState(() => _isLoading = true);
     try {
       await _store.syncCoreFromApi();

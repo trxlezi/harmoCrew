@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../stores/mock_collaboration_store.dart';
+import '../stores/collaboration_store.dart';
 import '../widgets/collaboration_summary_card.dart';
 
 class CollaborationScreen extends StatelessWidget {
@@ -10,7 +10,7 @@ class CollaborationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = MockCollaborationStore.instance;
+    final store = CollaborationStore.instance;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Colaboracao')),
