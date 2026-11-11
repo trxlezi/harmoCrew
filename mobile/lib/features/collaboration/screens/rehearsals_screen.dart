@@ -9,6 +9,12 @@ import '../widgets/collaboration_ui.dart';
 class RehearsalsScreen extends StatefulWidget {
   const RehearsalsScreen({super.key});
 
+  /*
+   * Tela de ensaios.
+   * Registra data, horario, local, projeto e participantes. E um exemplo de
+   * formulario mais rico no Flutter, combinando date picker, time picker,
+   * dropdowns e checkboxes.
+   */
   static const routeName = '/rehearsals';
 
   @override
@@ -24,6 +30,7 @@ class _RehearsalsScreenState extends State<RehearsalsScreen> {
 
   @override
   void didChangeDependencies() {
+    // Permite abrir a tela ja filtrada por projeto quando vem de outra tela.
     super.didChangeDependencies();
     if (_readInitialArguments) {
       return;
@@ -38,6 +45,11 @@ class _RehearsalsScreenState extends State<RehearsalsScreen> {
   }
 
   void _showRehearsalForm() {
+    /*
+     * O modal guarda estado temporario do formulario: data, horario, projeto e
+     * participantes escolhidos. Ao salvar, esse estado vira um Rehearsal enviado
+     * para a API pela store.
+     */
     final formKey = GlobalKey<FormState>();
     final locationController = TextEditingController();
     final notesController = TextEditingController();

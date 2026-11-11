@@ -12,6 +12,11 @@ import '../../collaboration/stores/collaboration_store.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  /*
+   * Tela de perfil do artista logado.
+   * Alem de dados do usuario, esta tela demonstra os recursos mobile nativos:
+   * Provider, Hive, galeria de imagens e notificacao local.
+   */
   static const routeName = '/profile';
 
   @override
@@ -36,6 +41,10 @@ class ProfileScreen extends StatelessWidget {
       currentIndex: 2,
       body: Consumer<NativeFeaturesStore>(
         builder: (context, nativeStore, _) {
+          /*
+           * Consumer vem do Provider. Sempre que NativeFeaturesStore chamar
+           * notifyListeners, somente este trecho da UI e reconstruido.
+           */
           final avatar = _avatar(nativeStore.profileImagePath, initials);
 
           return ListView(
@@ -154,6 +163,10 @@ class ProfileScreen extends StatelessWidget {
 }
 
 Widget _avatar(String? profileImagePath, String initials) {
+  /*
+   * Se o usuario escolheu imagem na galeria e o arquivo ainda existe, usamos
+   * FileImage. Caso contrario, mostramos as iniciais do nome autenticado.
+   */
   final imageFile = profileImagePath == null ? null : File(profileImagePath);
   final hasImage = imageFile != null && imageFile.existsSync();
 
@@ -174,6 +187,12 @@ class _NativeResourcesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    /*
+     * Card criado especificamente para evidenciar os requisitos mobile:
+     * - Switch persistido com Hive;
+     * - botao de notificacao local;
+     * - estado compartilhado pelo Provider.
+     */
     final status = nativeStore.notificationsEnabled
         ? 'Notificacoes locais ativadas'
         : 'Notificacoes locais desativadas';

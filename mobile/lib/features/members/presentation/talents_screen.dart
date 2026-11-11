@@ -11,6 +11,12 @@ import 'member_form_screen.dart';
 class TalentsScreen extends StatefulWidget {
   const TalentsScreen({super.key});
 
+  /*
+   * Tela de descoberta de artistas.
+   * Ela lista ArtistProfile vindos da API e permite filtrar por texto,
+   * instrumento, estilo e disponibilidade. Tambem abre o formulario de cadastro
+   * para criar novo artista pelo backend.
+   */
   static const routeName = '/talents';
 
   @override
@@ -39,6 +45,11 @@ class _TalentsScreenState extends State<TalentsScreen> {
   }
 
   Future<void> _openMemberForm() async {
+    /*
+     * O formulario retorna um objeto Member. A tela nao salva diretamente:
+     * ela entrega esse Member para CollaborationStore, que chama ArtistApiService
+     * e so atualiza a lista se a API confirmar a criacao.
+     */
     final result = await Navigator.pushNamed(
       context,
       MemberFormScreen.routeName,
@@ -70,6 +81,7 @@ class _TalentsScreenState extends State<TalentsScreen> {
   }
 
   Future<void> _loadArtists() async {
+    // Carrega artistas/projetos/candidaturas principais para manter filtros atuais.
     setState(() => _isLoading = true);
     try {
       await _store.syncCoreFromApi();
@@ -92,6 +104,7 @@ class _TalentsScreenState extends State<TalentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // _filteredArtists aplica todos os filtros escolhidos antes de montar os cards.
     final artists = _filteredArtists;
 
     return Scaffold(

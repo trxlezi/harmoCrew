@@ -41,6 +41,91 @@ class ApiClient {
     await _send('DELETE', path);
   }
 
+  /// URL absoluta para links da API (ex.: /media/{chave} de audios e PDFs).
+  String absoluteUrl(String path) =>
+      path.startsWith('http') ? path : '$_baseUrl$path';
+
+  /// Upload multipart (campo "file") usado por arquivos versionados e audio
+  /// do perfil. [fields] vira campos de formulario simples.
+  Future<dynamic> upload(
+    String path, {
+    required List<int> bytes,
+    required String filename,
+    Map<String, String> fields = const {},
+  }) async {
+    final request = http.MultipartRequest('POST', Uri.parse('$_baseUrl$path'))
+      ..fields.addAll(fields)
+      ..files.add(
+        http.MultipartFile.fromBytes('file', bytes, filename: filename),
+      );
+    request.headers['Accept'] = 'application/json';
+    if (ApiSession.isAuthenticated) {
+      request.headers['Authorization'] = 'Bearer ${ApiSession.token}';
+    }
+
+    late http.Response response;
+    try {
+      response = await http.Response.fromStream(
+        await _httpClient.send(request),
+      );
+    } catch (_) {
+      throw const ApiException('Nao foi possivel conectar com a API.');
+    }
+    final decoded = response.body.isEmpty ? null : jsonDecode(response.body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw ApiException(
+        _extractMessage(decoded) ?? 'Erro ao enviar arquivo.',
+        statusCode: response.statusCode,
+      );
+    }
+    return decoded;
+  }
+
+  /// Abre um stream Server-Sent Events e devolve cada evento como
+  /// (nome, dados JSON). Usado pelos alertas em tempo real.
+  Stream<({String event, dynamic data})> events(String path) async* {
+    final request = http.Request('GET', Uri.parse('$_baseUrl$path'));
+    request.headers['Accept'] = 'text/event-stream';
+    if (ApiSession.isAuthenticated) {
+      request.headers['Authorization'] = 'Bearer ${ApiSession.token}';
+    }
+    final response = await _httpClient.send(request);
+    if (response.statusCode != 200) {
+      throw ApiException(
+        'Falha ao abrir canal de alertas.',
+        statusCode: response.statusCode,
+      );
+    }
+    var event = 'message';
+    final data = StringBuffer();
+    await for (final line
+        in response.stream
+            .transform(utf8.decoder)
+            .transform(const LineSplitter())) {
+      if (line.isEmpty) {
+        if (data.isNotEmpty) {
+          final raw = data.toString();
+          dynamic parsed;
+          try {
+            parsed = jsonDecode(raw);
+          } catch (_) {
+            parsed = raw;
+          }
+          yield (event: event, data: parsed);
+        }
+        event = 'message';
+        data.clear();
+      } else if (line.startsWith('event:')) {
+        event = line.substring(6).trim();
+      } else if (line.startsWith('data:')) {
+        if (data.isNotEmpty) {
+          data.writeln();
+        }
+        data.write(line.substring(5).trimLeft());
+      }
+    }
+  }
+
   Future<dynamic> _send(
     String method,
     String path, {

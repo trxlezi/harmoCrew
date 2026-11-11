@@ -72,15 +72,21 @@ Application applicationFromJson(Map<String, dynamic> json) {
 
 ApplicationStatus _statusFromApi(String value) {
   return switch (value) {
+    'UNDER_REVIEW' => ApplicationStatus.underReview,
+    'SHORTLISTED' => ApplicationStatus.shortlisted,
     'APPROVED' => ApplicationStatus.approved,
     'REJECTED' => ApplicationStatus.rejected,
     _ => ApplicationStatus.pending,
   };
 }
 
+String applicationStatusToApi(ApplicationStatus status) => _statusToApi(status);
+
 String _statusToApi(ApplicationStatus status) {
   return switch (status) {
     ApplicationStatus.pending => 'PENDING',
+    ApplicationStatus.underReview => 'UNDER_REVIEW',
+    ApplicationStatus.shortlisted => 'SHORTLISTED',
     ApplicationStatus.approved => 'APPROVED',
     ApplicationStatus.rejected => 'REJECTED',
   };

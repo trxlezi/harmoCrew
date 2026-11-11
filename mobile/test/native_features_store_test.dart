@@ -90,4 +90,7 @@ class _FakeNotificationGateway implements NotificationGateway {
   Future<void> showDemoNotification() async {
     demoNotificationsSent++;
   }
+
+  @override
+  Future<void> showAlert(int id, String title, String body) async {}
 }

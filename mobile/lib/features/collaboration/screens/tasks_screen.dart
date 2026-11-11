@@ -9,6 +9,11 @@ import '../widgets/collaboration_ui.dart' hide priorityLabel;
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
 
+  /*
+   * Tela de tarefas.
+   * Permite listar tarefas por projeto e criar novas tarefas com responsavel,
+   * prioridade e prazo. A criacao e enviada ao backend pela CollaborationStore.
+   */
   static const routeName = '/tasks';
 
   @override
@@ -24,6 +29,11 @@ class _TasksScreenState extends State<TasksScreen> {
 
   @override
   void didChangeDependencies() {
+    /*
+     * Algumas telas abrem Tarefas ja passando um projectId por arguments.
+     * Lemos esse argumento uma unica vez para evitar sobrescrever o filtro
+     * quando o Flutter reconstruir a tela.
+     */
     super.didChangeDependencies();
     if (_readInitialArguments) {
       return;
@@ -38,6 +48,7 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   List<ProjectTask> get _visibleTasks {
+    // Se nenhum projeto foi selecionado, mostra todas; senao filtra pelo projeto.
     if (_selectedProjectId == null) {
       return _store.tasks;
     }
@@ -48,6 +59,11 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   void _showTaskForm() {
+    /*
+     * Bottom sheet usado para criar tarefa sem sair da tela.
+     * O StatefulBuilder permite atualizar dropdowns dentro do modal sem
+     * reconstruir a tela inteira de tarefas.
+     */
     final formKey = GlobalKey<FormState>();
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();

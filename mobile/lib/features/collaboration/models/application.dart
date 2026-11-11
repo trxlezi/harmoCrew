@@ -1,4 +1,4 @@
-enum ApplicationStatus { pending, approved, rejected }
+enum ApplicationStatus { pending, underReview, shortlisted, approved, rejected }
 
 class Application {
   const Application({

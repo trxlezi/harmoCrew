@@ -1,5 +1,6 @@
 import '../../../core/api/api_session.dart';
 import '../domain/auth_user.dart';
+import '../../production/data/realtime_alerts.dart';
 import 'auth_api_service.dart';
 
 class AuthStore {
@@ -21,6 +22,8 @@ class AuthStore {
     // Chama a API, salva o token no ApiSession e guarda o usuario atual.
     final user = await _api.login(email: email, password: password);
     currentUser = user;
+    // Abre o canal SSE de alertas em tempo real do artista logado.
+    RealtimeAlerts.instance.start(user.artistId);
     return user;
   }
 
@@ -34,6 +37,7 @@ class AuthStore {
       email: email,
       password: password,
     );
+    RealtimeAlerts.instance.start(currentUser?.artistId);
     return true;
   }
 
@@ -43,6 +47,7 @@ class AuthStore {
       await _api.logout();
     }
 
+    RealtimeAlerts.instance.stop();
     ApiSession.clear();
     currentUser = null;
   }

@@ -38,11 +38,17 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   void initState() {
     super.initState();
     if (widget.loadOnStart) {
+      // Nos testes a tela pode iniciar sem rede; no app real carregamos a API.
       _loadProjects();
     }
   }
 
   void _showProjectDetails(BuildContext context, Project project) {
+    /*
+     * Detalhe do projeto em bottom sheet.
+     * Mantem o usuario na tela de projetos e exibe resumo, necessidades,
+     * decisoes e atalhos para tarefas/kanban/ensaios.
+     */
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -870,6 +876,8 @@ class _ApplicationCard extends StatelessWidget {
   String get _statusLabel {
     return switch (application.status) {
       ApplicationStatus.pending => 'Pendente',
+      ApplicationStatus.underReview => 'Em avaliacao',
+      ApplicationStatus.shortlisted => 'Pre-selecionada',
       ApplicationStatus.approved => 'Aceita',
       ApplicationStatus.rejected => 'Recusada',
     };
@@ -877,7 +885,9 @@ class _ApplicationCard extends StatelessWidget {
 
   Color _statusColor(BuildContext context) {
     return switch (application.status) {
-      ApplicationStatus.pending => Theme.of(context).colorScheme.primary,
+      ApplicationStatus.pending ||
+      ApplicationStatus.underReview ||
+      ApplicationStatus.shortlisted => Theme.of(context).colorScheme.primary,
       ApplicationStatus.approved => Colors.green,
       ApplicationStatus.rejected => Colors.redAccent,
     };
@@ -992,6 +1002,8 @@ class _ProjectsEmptyState extends StatelessWidget {
 String _applicationStatusLabel(ApplicationStatus status) {
   return switch (status) {
     ApplicationStatus.pending => 'Pendente',
+    ApplicationStatus.underReview => 'Em avaliacao',
+    ApplicationStatus.shortlisted => 'Pre-selecionada',
     ApplicationStatus.approved => 'Aceita',
     ApplicationStatus.rejected => 'Recusada',
   };

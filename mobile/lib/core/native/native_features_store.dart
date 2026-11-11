@@ -16,6 +16,11 @@ abstract class LocalPreferencesGateway {
 class HiveLocalPreferencesGateway implements LocalPreferencesGateway {
   HiveLocalPreferencesGateway();
 
+  /*
+   * Gateway de persistencia local.
+   * Hive funciona como um pequeno banco chave/valor no aparelho. Usamos para
+   * guardar preferencia de notificacao e caminho da imagem escolhida no perfil.
+   */
   static const _boxName = 'harmocrew_preferences';
   static const _notificationsEnabledKey = 'notificationsEnabled';
   static const _profileImagePathKey = 'profileImagePath';
@@ -53,11 +58,17 @@ class HiveLocalPreferencesGateway implements LocalPreferencesGateway {
 abstract class NotificationGateway {
   Future<void> initialize();
   Future<void> showDemoNotification();
+  Future<void> showAlert(int id, String title, String body);
 }
 
 class LocalNotificationGateway implements NotificationGateway {
   LocalNotificationGateway();
 
+  /*
+   * Gateway de notificacao local.
+   * Ele configura o canal Android e dispara uma notificacao de demonstracao.
+   * Isso nao depende de Firebase; e uma notificacao nativa local do aparelho.
+   */
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
@@ -72,6 +83,24 @@ class LocalNotificationGateway implements NotificationGateway {
           AndroidFlutterLocalNotificationsPlugin
         >();
     await androidPlugin?.requestNotificationsPermission();
+  }
+
+  @override
+  Future<void> showAlert(int id, String title, String body) async {
+    // Alertas reais vindos da API (prazos, status, enquetes, candidaturas).
+    const android = AndroidNotificationDetails(
+      'harmocrew_alerts',
+      'Alertas do projeto',
+      channelDescription: 'Prazos, mudancas de status e decisoes do grupo',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+    await _plugin.show(
+      id,
+      title,
+      body,
+      const NotificationDetails(android: android),
+    );
   }
 
   @override
@@ -108,6 +137,11 @@ class NativeFeaturesStore extends ChangeNotifier {
     notifications: LocalNotificationGateway(),
   );
 
+  /*
+   * Store observavel pelo Provider.
+   * A tela de Perfil escuta este ChangeNotifier e redesenha quando a preferencia
+   * de notificacao ou a foto escolhida muda.
+   */
   final LocalPreferencesGateway _preferences;
   final NotificationGateway _notifications;
   final ImagePicker _imagePicker;
@@ -140,6 +174,10 @@ class NativeFeaturesStore extends ChangeNotifier {
   }
 
   Future<void> pickProfileImageFromGallery() async {
+    /*
+     * image_picker abre a galeria nativa do Android. O app salva apenas o caminho
+     * local da imagem no Hive; nao envia a imagem para o backend.
+     */
     final image = await _imagePicker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 80,
@@ -151,6 +189,13 @@ class NativeFeaturesStore extends ChangeNotifier {
     _profileImagePath = image.path;
     await _preferences.setProfileImagePath(image.path);
     notifyListeners();
+  }
+
+  Future<void> showAlert(int id, String title, String body) async {
+    if (!_notificationsEnabled) {
+      return;
+    }
+    await _notifications.showAlert(id, title, body);
   }
 
   Future<void> showDemoNotification() async {

@@ -8,6 +8,11 @@ import 'talents_screen.dart';
 class ArtistDetailScreen extends StatefulWidget {
   const ArtistDetailScreen({super.key});
 
+  /*
+   * Tela de detalhe de artista.
+   * Mostra dados de um ArtistProfile selecionado na tela de talentos e permite
+   * simular convite para projeto, conectando artista com MusicalProject.
+   */
   static const routeName = '/talents/detail';
 
   @override
@@ -18,6 +23,11 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
   final CollaborationStore _store = CollaborationStore.instance;
 
   void _inviteToProject(ArtistProfile artist) {
+    /*
+     * Dialog local para escolher projeto e exibir feedback.
+     * Hoje funciona como acao demonstrativa; o relacionamento real artista/projeto
+     * tambem existe no backend e pode ser expandido por endpoint especifico.
+     */
     Project? selectedProject = _store.projects.isEmpty
         ? null
         : _store.projects.first;
@@ -74,6 +84,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // artistId chega por arguments; com ele buscamos o perfil completo na store.
     final args =
         ModalRoute.of(context)?.settings.arguments as ArtistDetailArguments?;
     final artistId = args?.artistId;

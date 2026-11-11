@@ -7,6 +7,12 @@ import '../widgets/collaboration_ui.dart';
 class ApplicationsScreen extends StatefulWidget {
   const ApplicationsScreen({super.key});
 
+  /*
+   * Tela de candidaturas.
+   * Mostra artistas interessados nos projetos e permite mudar o status para
+   * pendente, aprovado ou rejeitado. Cada mudanca chama PATCH/PUT no backend
+   * por meio da CollaborationStore.
+   */
   static const routeName = '/applications';
 
   @override
@@ -24,6 +30,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
   }
 
   Future<void> _updateStatus(String id, ApplicationStatus status) async {
+    // Atualizacao de status integrada a API: a UI so muda apos resposta da store.
     try {
       await _store.updateApplicationStatusFromApi(id, status);
       if (mounted) {
@@ -51,6 +58,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
   }
 
   Future<void> _loadApplications() async {
+    // syncCoreFromApi busca os dados principais sem carregar todos os fluxos longos.
     setState(() => _isLoading = true);
     try {
       await _store.syncCoreFromApi();
@@ -191,6 +199,8 @@ class _ApplicationCard extends StatelessWidget {
 String _statusLabel(ApplicationStatus status) {
   return switch (status) {
     ApplicationStatus.pending => 'Pendente',
+    ApplicationStatus.underReview => 'Em avaliacao',
+    ApplicationStatus.shortlisted => 'Pre-selecionada',
     ApplicationStatus.approved => 'Aceita',
     ApplicationStatus.rejected => 'Recusada',
   };

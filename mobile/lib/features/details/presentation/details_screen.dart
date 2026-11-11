@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 class DetailsArguments {
   const DetailsArguments({required this.title, required this.description});
 
+  /*
+   * Objeto usado para demonstrar passagem de dados por rota.
+   * A tela que navega para DetailsScreen envia titulo/descricao em arguments.
+   */
   final String title;
   final String description;
 }
@@ -10,10 +14,16 @@ class DetailsArguments {
 class DetailsScreen extends StatelessWidget {
   const DetailsScreen({super.key});
 
+  /*
+   * Tela generica de detalhes.
+   * Ela e pequena, mas mostra um conceito importante em Flutter: rotas nomeadas
+   * podem receber argumentos tipados para reaproveitar uma mesma tela.
+   */
   static const routeName = '/details';
 
   @override
   Widget build(BuildContext context) {
+    // Recupera os argumentos enviados por Navigator.pushNamed.
     final args = ModalRoute.of(context)!.settings.arguments as DetailsArguments;
 
     return Scaffold(

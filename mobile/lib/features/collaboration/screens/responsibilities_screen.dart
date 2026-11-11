@@ -16,6 +16,12 @@ import 'weekly_goals_screen.dart';
 class ResponsibilitiesScreen extends StatefulWidget {
   const ResponsibilitiesScreen({super.key});
 
+  /*
+   * Tela-resumo de responsabilidades.
+   * Ela junta tarefas abertas, metas ativas, ensaios agendados e decisoes
+   * recentes de um projeto. Na apresentacao, use essa tela para mostrar como
+   * varias entidades aparecem reunidas em uma visao unica.
+   */
   static const routeName = '/responsibilities';
 
   @override
@@ -30,6 +36,7 @@ class _ResponsibilitiesScreenState extends State<ResponsibilitiesScreen> {
 
   @override
   void initState() {
+    // Se houver projetos carregados, seleciona o primeiro para evitar tela vazia.
     super.initState();
     if (_store.projects.isNotEmpty) {
       _selectedProjectId = _store.projects.first.id;
@@ -38,6 +45,7 @@ class _ResponsibilitiesScreenState extends State<ResponsibilitiesScreen> {
 
   @override
   void didChangeDependencies() {
+    // Permite receber projectId por rota e sobrescrever o projeto inicial.
     super.didChangeDependencies();
     if (_readInitialArguments) {
       return;
@@ -51,6 +59,10 @@ class _ResponsibilitiesScreenState extends State<ResponsibilitiesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    /*
+     * Cada lista abaixo vem da store filtrada por projeto. Depois filtramos por
+     * status para destacar so o que ainda exige atencao do grupo.
+     */
     final project = _selectedProject;
     final tasks = _store.tasksForProject(_selectedProjectId);
     final goals = _store.weeklyGoalsForProject(_selectedProjectId);

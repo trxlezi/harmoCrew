@@ -5,6 +5,11 @@ import '../data/auth_store.dart';
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
+  /*
+   * Tela de criacao de conta.
+   * No backend, o cadastro cria User e tambem Artist vinculado. Isso e importante
+   * porque o frontend precisa do artistId para mensagens, candidaturas e perfil.
+   */
   static const routeName = '/register';
 
   @override
@@ -36,6 +41,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isSubmitting = false;
 
   Future<void> _submit() async {
+    /*
+     * O cadastro segue a mesma ideia do login: valida campos, chama AuthStore e
+     * trata loading/erro. Se a API confirmar, voltamos para LoginScreen com uma
+     * mensagem de sucesso.
+     */
     if (!_formKey.currentState!.validate()) {
       return;
     }

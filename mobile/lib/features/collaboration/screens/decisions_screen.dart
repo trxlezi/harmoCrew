@@ -9,6 +9,12 @@ import '../widgets/collaboration_ui.dart';
 class DecisionsScreen extends StatefulWidget {
   const DecisionsScreen({super.key});
 
+  /*
+   * Tela de decisoes do projeto.
+   * Serve para registrar combinados importantes: o que foi decidido, por quem,
+   * impacto e status. Ajuda a mostrar que o app nao gerencia so tarefas, mas
+   * tambem historico de colaboracao.
+   */
   static const routeName = '/decisions';
 
   @override
@@ -24,6 +30,7 @@ class _DecisionsScreenState extends State<DecisionsScreen> {
 
   @override
   void didChangeDependencies() {
+    // Le o projectId recebido por rota para abrir a tela ja filtrada.
     super.didChangeDependencies();
     if (_readInitialArguments) {
       return;
@@ -38,6 +45,10 @@ class _DecisionsScreenState extends State<DecisionsScreen> {
   }
 
   void _showDecisionForm() {
+    /*
+     * Formulario em bottom sheet para registrar decisao sem perder o contexto.
+     * A decisao criada e enviada para a API e depois aparece na lista.
+     */
     final formKey = GlobalKey<FormState>();
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
@@ -167,7 +178,8 @@ class _DecisionsScreenState extends State<DecisionsScreen> {
                                     id: '',
                                     projectId: selectedProject!.id,
                                     title: titleController.text.trim(),
-                                    description: descriptionController.text.trim(),
+                                    description: descriptionController.text
+                                        .trim(),
                                     decidedByArtistId: selectedArtist!.id,
                                     decidedAt: DateTime.now()
                                         .toIso8601String()

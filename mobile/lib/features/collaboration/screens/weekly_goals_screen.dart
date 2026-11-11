@@ -8,6 +8,11 @@ import '../widgets/collaboration_ui.dart';
 class WeeklyGoalsScreen extends StatefulWidget {
   const WeeklyGoalsScreen({super.key});
 
+  /*
+   * Tela de metas semanais.
+   * Mostra planejamento curto por artista e permite criar/editar metas. E util
+   * para explicar PUT/POST no mobile e acompanhamento de progresso.
+   */
   static const routeName = '/weekly-goals';
 
   @override
@@ -25,6 +30,10 @@ class _WeeklyGoalsScreenState extends State<WeeklyGoalsScreen> {
   }
 
   void _showGoalForm({WeeklyGoal? goal}) {
+    /*
+     * Quando goal e null, o modal cria uma meta nova. Quando goal vem preenchido,
+     * o mesmo formulario funciona como edicao reaproveitando os valores atuais.
+     */
     final formKey = GlobalKey<FormState>();
     final titleController = TextEditingController(text: goal?.title ?? '');
     final descriptionController = TextEditingController(
@@ -189,7 +198,8 @@ class _WeeklyGoalsScreenState extends State<WeeklyGoalsScreen> {
                                 await _store.updateWeeklyGoalFromApi(
                                   goal.copyWith(
                                     title: titleController.text.trim(),
-                                    description: descriptionController.text.trim(),
+                                    description: descriptionController.text
+                                        .trim(),
                                     ownerArtistId: selectedArtist!.id,
                                     dueDate: dueDateController.text.trim(),
                                   ),

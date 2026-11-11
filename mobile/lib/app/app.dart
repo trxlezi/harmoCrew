@@ -21,12 +21,23 @@ import '../features/members/presentation/member_form_screen.dart';
 import '../features/members/presentation/talents_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/projects/presentation/projects_screen.dart';
+import '../features/production/screens/matching_screen.dart';
+import '../features/production/screens/musical_profile_screen.dart';
+import '../features/production/screens/decision_center_screen.dart';
+import '../features/production/screens/workflow_timeline_screen.dart';
+import '../features/production/screens/notifications_screen.dart';
+import '../features/production/screens/performance_dashboard_screen.dart';
 
 class HarmoCrewApp extends StatelessWidget {
   const HarmoCrewApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    /*
+     * MultiProvider disponibiliza estados compartilhados para as telas.
+     * Aqui expomos NativeFeaturesStore, usado no Perfil para Hive, galeria e
+     * notificacoes. As rotas nomeadas centralizam a navegacao do app.
+     */
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<NativeFeaturesStore>.value(
@@ -58,6 +69,15 @@ class HarmoCrewApp extends StatelessWidget {
           TalentsScreen.routeName: (_) => const TalentsScreen(),
           ProjectsScreen.routeName: (_) => const ProjectsScreen(),
           ProfileScreen.routeName: (_) => const ProfileScreen(),
+          // Funcionalidades do documento de ideias (BRAOTI2).
+          MatchingScreen.routeName: (_) => const MatchingScreen(),
+          MusicalProfileScreen.routeName: (_) => const MusicalProfileScreen(),
+          DecisionCenterScreen.routeName: (_) => const DecisionCenterScreen(),
+          WorkflowTimelineScreen.routeName: (_) =>
+              const WorkflowTimelineScreen(),
+          NotificationsScreen.routeName: (_) => const NotificationsScreen(),
+          PerformanceDashboardScreen.routeName: (_) =>
+              const PerformanceDashboardScreen(),
         },
       ),
     );

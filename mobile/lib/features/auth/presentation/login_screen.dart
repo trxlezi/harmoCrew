@@ -7,6 +7,12 @@ import 'register_screen.dart';
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
+  /*
+   * Primeira tela do app.
+   * Ela coleta email/senha, valida campos obrigatorios e chama AuthStore.login.
+   * O AuthStore conversa com a API; se o login der certo, a sessao recebe token,
+   * userId e artistId, e o usuario segue para o painel principal.
+   */
   static const routeName = '/login';
 
   @override
@@ -36,6 +42,13 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isSubmitting = false;
 
   Future<void> _submit() async {
+    /*
+     * Fluxo do botao Entrar:
+     * 1. valida o formulario;
+     * 2. bloqueia o botao com _isSubmitting;
+     * 3. chama a autenticacao real;
+     * 4. navega para HomeScreen ou mostra erro.
+     */
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -156,6 +169,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: double.infinity,
                           child: OutlinedButton(
                             onPressed: () async {
+                              /*
+                               * Cadastro abre como uma rota separada. Quando a
+                               * tela de cadastro fecha com uma mensagem, exibimos
+                               * essa mensagem aqui no login.
+                               */
                               final result = await Navigator.pushNamed(
                                 context,
                                 RegisterScreen.routeName,

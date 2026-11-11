@@ -17,6 +17,12 @@ import '../../features/members/presentation/member_form_screen.dart';
 import '../../features/members/presentation/talents_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/projects/presentation/projects_screen.dart';
+import '../../features/production/screens/matching_screen.dart';
+import '../../features/production/screens/musical_profile_screen.dart';
+import '../../features/production/screens/decision_center_screen.dart';
+import '../../features/production/screens/workflow_timeline_screen.dart';
+import '../../features/production/screens/performance_dashboard_screen.dart';
+import '../../features/production/screens/notifications_screen.dart';
 
 class AppScaffold extends StatelessWidget {
   const AppScaffold({
@@ -33,6 +39,12 @@ class AppScaffold extends StatelessWidget {
   final Widget? floatingActionButton;
 
   void _goToTab(BuildContext context, int index, {bool closeDrawer = false}) {
+    /*
+     * AppScaffold e o "molde" das telas internas.
+     * Ele padroniza AppBar, Drawer e BottomNavigationBar. As tres abas fixas
+     * usam pushReplacementNamed para substituir a tela atual e evitar uma pilha
+     * enorme de telas quando o usuario fica alternando entre Inicio/Projetos/Perfil.
+     */
     final routes = [
       HomeScreen.routeName,
       ProjectsScreen.routeName,
@@ -52,7 +64,7 @@ class AppScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(title: Text(title), actions: const [AlertsBell()]),
       drawer: Drawer(
         child: SafeArea(
           bottom: false,
@@ -102,6 +114,65 @@ class AppScaffold extends StatelessWidget {
                 leading: const Icon(Icons.person_outline),
                 title: const Text('Perfil'),
                 onTap: () => _goToTab(context, 2, closeDrawer: true),
+              ),
+              const Divider(),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: Text('Producao musical'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.insights_outlined),
+                title: const Text('Performance do coletivo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(
+                    context,
+                    PerformanceDashboardScreen.routeName,
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.timeline_outlined),
+                title: const Text('Workflow e timeline'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(
+                    context,
+                    WorkflowTimelineScreen.routeName,
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.folder_copy_outlined),
+                title: const Text('Arquivos, enquetes e auditoria'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, DecisionCenterScreen.routeName);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.person_search_outlined),
+                title: const Text('Selecao de musicos'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, MatchingScreen.routeName);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.graphic_eq),
+                title: const Text('Meu perfil musical'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, MusicalProfileScreen.routeName);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.notifications_outlined),
+                title: const Text('Alertas'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, NotificationsScreen.routeName);
+                },
               ),
               const Divider(),
               ListTile(
@@ -216,6 +287,11 @@ class AppScaffold extends StatelessWidget {
                 leading: const Icon(Icons.logout),
                 title: const Text('Sair'),
                 onTap: () async {
+                  /*
+                   * Logout chama a API para invalidar o token no backend e, depois,
+                   * limpa a navegacao voltando para o login. Assim o usuario nao
+                   * consegue voltar para telas internas pelo botao "voltar".
+                   */
                   try {
                     await AuthStore.logout();
                   } catch (error) {

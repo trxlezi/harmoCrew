@@ -22,6 +22,12 @@ import '../../members/presentation/member_form_screen.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
+  /*
+   * Painel inicial apos o login.
+   * Resume dados vindos da CollaborationStore: projetos, artistas, tarefas,
+   * candidaturas, metas e decisoes. E uma tela boa para demonstrar que o app
+   * sincroniza com a API e transforma esses dados em indicadores visuais.
+   */
   static const routeName = '/';
 
   @override
@@ -38,6 +44,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openMemberForm() async {
+    /*
+     * Abre o formulario de integrante. Quando ele retorna um Member valido,
+     * a tela cria o artista na API por meio da store e atualiza o painel.
+     */
     final result = await Navigator.pushNamed(
       context,
       MemberFormScreen.routeName,
@@ -83,6 +93,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
+    /*
+     * Carregamento principal do dashboard.
+     * syncAll busca os recursos na API e substitui o cache em memoria da store.
+     */
     try {
       await _store.syncAll();
       if (mounted) {
@@ -100,6 +114,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    /*
+     * Os contadores abaixo nao sao valores fixos: eles sao calculados a partir
+     * das listas atuais da CollaborationStore. Isso permite que o painel reflita
+     * o estado real depois de criar tarefas, candidaturas ou metas.
+     */
     final projects = _store.projects;
     final members = _store.artists;
     final collaborationStore = _store;

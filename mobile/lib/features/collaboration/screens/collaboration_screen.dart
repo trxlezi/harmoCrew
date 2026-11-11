@@ -6,6 +6,11 @@ import '../widgets/collaboration_summary_card.dart';
 class CollaborationScreen extends StatelessWidget {
   const CollaborationScreen({super.key});
 
+  /*
+   * Tela simples de visao geral da colaboracao.
+   * Ela usa CollaborationSummaryCard para resumir os principais numeros da store
+   * e serve como porta de entrada conceitual para os modulos colaborativos.
+   */
   static const routeName = '/collaboration';
 
   @override

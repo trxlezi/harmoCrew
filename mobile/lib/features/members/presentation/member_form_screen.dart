@@ -5,6 +5,11 @@ import '../domain/member.dart';
 class MemberFormScreen extends StatefulWidget {
   const MemberFormScreen({super.key});
 
+  /*
+   * Formulario reutilizado para cadastrar um artista/integrante.
+   * Ele nao conhece HTTP nem banco: apenas valida campos e devolve um Member
+   * para a tela anterior. Quem chamou decide se vai salvar via API.
+   */
   static const routeName = '/members/new';
 
   @override
@@ -42,6 +47,10 @@ class _MemberFormScreenState extends State<MemberFormScreen> {
   }
 
   void _submit() {
+    /*
+     * Os campos com listas sao digitados separados por virgula. Antes de voltar
+     * para a tela anterior, _splitList transforma o texto em List<String>.
+     */
     if (!_formKey.currentState!.validate()) {
       return;
     }

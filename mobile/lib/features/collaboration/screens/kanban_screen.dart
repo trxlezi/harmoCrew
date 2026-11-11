@@ -10,6 +10,11 @@ import 'tasks_screen.dart';
 class KanbanScreen extends StatefulWidget {
   const KanbanScreen({super.key});
 
+  /*
+   * Kanban das tarefas.
+   * Usa as mesmas tarefas da TasksScreen, mas separadas por status em abas:
+   * a fazer, em andamento e concluidas.
+   */
   static const routeName = '/kanban';
 
   @override
@@ -40,6 +45,10 @@ class _KanbanScreenState extends State<KanbanScreen> {
   }
 
   List<ProjectTask> _tasksFor(ProjectTaskStatus status) {
+    /*
+     * Filtro combinado: status da coluna + projeto selecionado + responsavel.
+     * Isso permite demonstrar uma visao operacional do projeto musical.
+     */
     return _store.tasks.where((task) {
       final matchesStatus = task.status == status;
       final matchesProject =
@@ -53,6 +62,10 @@ class _KanbanScreenState extends State<KanbanScreen> {
   }
 
   Future<void> _moveTask(ProjectTask task, ProjectTaskStatus status) async {
+    /*
+     * Mover no Kanban significa atualizar o status da tarefa na API.
+     * Depois da resposta, o setState redesenha as colunas.
+     */
     try {
       await _store.updateTaskStatusFromApi(task.id, status);
       if (mounted) {
