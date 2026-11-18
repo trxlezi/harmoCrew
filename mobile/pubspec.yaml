@@ -1,0 +1,28 @@
+name: mobile
+description: App mobile do HarmoCrew para demonstracao academica.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_local_notifications: ^19.5.0
+  hive_flutter: ^1.1.0
+  http: ^1.6.0
+  image_picker: ^1.2.1
+  provider: ^6.1.5+1
+  file_picker: ^13.3.3
+  url_launcher: ^6.3.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
