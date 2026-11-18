@@ -1,12 +1,12 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { capitalizeName } from "../utils/formatters";
+import { useAlerts } from "../domains/alerts/AlertsContext";
 
 const NAV_ITEMS = [
-  { to: "/explorar", label: "Explorar" },
-  { to: "/oportunidades", label: "Oportunidades" },
-  { to: "/mensagens", label: "Mensagens" },
+  { to: "/projetos", label: "Projetos" },
+  { to: "/responsabilidades", label: "Minha agenda" },
+  { to: "/musicos", label: "Músicos" },
   { to: "/painel", label: "Painel" },
   { to: "/perfil", label: "Perfil" },
 ];
@@ -14,42 +14,30 @@ const NAV_ITEMS = [
 export default function Navbar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { unread } = useAlerts();
 
   return (
     <header className="topbar">
-      <button
-        type="button"
-        className="brand-mark"
-        onClick={() => navigate("/explorar")}
-      >
+      <button type="button" className="brand-mark" onClick={() => navigate("/projetos")}>
         HarmoCrew
       </button>
 
       <nav className="topbar-nav" aria-label="Navegacao principal">
         {NAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              `topbar-link${isActive ? " active" : ""}`
-            }
-          >
+          <NavLink key={item.to} to={item.to} className={({ isActive }) => `topbar-link${isActive ? " active" : ""}`}>
             {item.label}
           </NavLink>
         ))}
       </nav>
 
       <div className="topbar-user">
-        <div className="topbar-avatar">
-          {user?.profile_pic_url ? (
-            <img src={user.profile_pic_url} alt="" />
-          ) : (
-            user?.nome?.slice(0, 1).toUpperCase() ?? "H"
-          )}
-        </div>
+        <NavLink to="/alertas" className={({ isActive }) => `topbar-link bell${isActive ? " active" : ""}`} aria-label={`Alertas (${unread} não lidos)`}>
+          🔔{unread > 0 ? <span className="badge">{unread}</span> : null}
+        </NavLink>
+        <div className="topbar-avatar">{user?.name?.slice(0, 1).toUpperCase() ?? "H"}</div>
         <div className="topbar-user-copy">
-          <strong>{capitalizeName(user?.nome) || "HarmoCrew"}</strong>
-          <span>{user?.email ?? "comunidade musical"}</span>
+          <strong>{user?.name || "HarmoCrew"}</strong>
+          <span>{user?.email}</span>
         </div>
         <button
           type="button"

@@ -1,201 +1,105 @@
 import React, { useEffect, useState } from "react";
-import EmptyState from "../../../components/ui/EmptyState";
-import LoadingState from "../../../components/ui/LoadingState";
 import SectionHeader from "../../../components/ui/SectionHeader";
 import SurfaceCard from "../../../components/ui/SurfaceCard";
+import LoadingState from "../../../components/ui/LoadingState";
 import { useAuth } from "../../../context/AuthContext";
-import api from "../../../services/api";
-import ProfileHero from "../components/ProfileHero";
+import api, { errorMessage, mediaUrl } from "../../../services/api";
+import { splitList } from "../../../utils/labels";
+import { Field } from "../../projects/pages/ProjectsPage";
 
+/*
+ * Perfil musical usado pelo matching: estilos, instrumentos, influencias,
+ * cidade e audio de apresentacao.
+ */
 export default function ProfilePage() {
-  const { updateUser } = useAuth();
-  const [profile, setProfile] = useState(null);
-  const [projects, setProjects] = useState([]);
-  const [descriptionDraft, setDescriptionDraft] = useState("");
-  const [linksDraft, setLinksDraft] = useState("");
-  const [photoDraft, setPhotoDraft] = useState("");
-  const [status, setStatus] = useState("loading");
-  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const { user, updateUser } = useAuth();
+  const [artist, setArtist] = useState(null);
+  const [form, setForm] = useState(null);
+  const [feedback, setFeedback] = useState("");
 
   useEffect(() => {
-    async function loadProfile() {
-      setStatus("loading");
-      const [profileResponse, projectsResponse] = await Promise.all([
-        api.profiles.me(),
-        api.profiles.projects("me"),
-      ]);
-
-      const nextProfile = profileResponse.data.data.profile;
-      setProfile(nextProfile);
-      setDescriptionDraft(nextProfile.descricao || "");
-      setLinksDraft(nextProfile.links_sociais || "");
-      setPhotoDraft(nextProfile.profile_pic_url || "");
-      setProjects(projectsResponse.data.data.projects || []);
-      setStatus("ready");
-    }
-
-    loadProfile().catch((error) => {
-      setProjects([]);
-      setStatus("error");
-      setFeedbackMessage(
-        error?.response?.data?.error?.message ||
-          "Nao foi possivel carregar seu perfil."
-      );
+    api.artists.get(user.artistId).then((data) => {
+      setArtist(data);
+      setForm({
+        stageName: data.stageName,
+        mainSpecialty: data.mainSpecialty,
+        availability: data.availability,
+        city: data.city || "",
+        bio: data.bio || "",
+        musicalStyles: data.musicalStyles.join(", "),
+        instruments: data.instruments.join(", "),
+        influences: data.influences.join(", "),
+      });
     });
-  }, []);
+  }, [user.artistId]);
 
-  async function handleSaveDescription() {
+  if (!form) return <LoadingState title="Carregando perfil" />;
+
+  async function save(event) {
+    event.preventDefault();
     try {
-      const response = await api.profiles.updateDescription(descriptionDraft);
-      setProfile(response.data.data.profile);
-      updateUser((current) => ({ ...current, ...response.data.data.profile }));
-      setFeedbackMessage("Descricao atualizada com sucesso.");
-    } catch (error) {
-      setFeedbackMessage(
-        error?.response?.data?.error?.message ||
-          "Nao foi possivel salvar a descricao."
-      );
+      const saved = await api.artists.update(user.artistId, {
+        ...form,
+        musicalStyles: splitList(form.musicalStyles),
+        instruments: splitList(form.instruments),
+        influences: splitList(form.influences),
+        audioUrl: artist.audioUrl ? artist.audioUrl.split("?")[0] : null,
+      });
+      setArtist(saved);
+      updateUser({ name: saved.stageName });
+      setFeedback("Perfil salvo. Ele já conta no ranking de compatibilidade.");
+    } catch (err) {
+      setFeedback(errorMessage(err, "Não foi possível salvar."));
     }
   }
 
-  async function handleSaveLinks() {
+  async function uploadAudio(file) {
+    if (!file) return;
     try {
-      const response = await api.profiles.updateLinks(linksDraft);
-      setProfile(response.data.data.profile);
-      updateUser((current) => ({ ...current, ...response.data.data.profile }));
-      setFeedbackMessage("Links atualizados com sucesso.");
-    } catch (error) {
-      setFeedbackMessage(
-        error?.response?.data?.error?.message ||
-          "Nao foi possivel atualizar os links."
-      );
+      setArtist(await api.artists.uploadAudio(user.artistId, file));
+      setFeedback("Áudio de apresentação atualizado.");
+    } catch (err) {
+      setFeedback(errorMessage(err, "Falha no upload do áudio."));
     }
   }
 
-  async function handleSavePhoto() {
-    try {
-      const response = await api.profiles.updatePhoto(photoDraft);
-      setProfile(response.data.data.profile);
-      updateUser((current) => ({ ...current, ...response.data.data.profile }));
-      setFeedbackMessage("Foto de perfil atualizada com sucesso.");
-    } catch (error) {
-      setFeedbackMessage(
-        error?.response?.data?.error?.message ||
-          "Nao foi possivel atualizar a foto de perfil."
-      );
-    }
-  }
-
-  if (status === "loading") {
-    return (
-      <LoadingState
-        title="Carregando seu perfil"
-        description="Buscando sua apresentacao, links e publicacoes recentes."
-      />
-    );
-  }
-
-  if (!profile) {
-    return (
-      <EmptyState
-        title="Perfil indisponivel"
-        description={feedbackMessage || "Ainda nao foi possivel carregar suas informacoes."}
-      />
-    );
-  }
+  const set = (key) => (value) => setForm({ ...form, [key]: value });
 
   return (
     <div className="page-stack">
-      <SectionHeader
-        eyebrow="Perfil"
-        title="Sua identidade profissional"
-        subtitle="Apresente claramente quem voce e, o que busca e como outras pessoas podem colaborar."
-      />
-
-      {feedbackMessage ? <div className="inline-feedback">{feedbackMessage}</div> : null}
-
-      <ProfileHero profile={profile} isCurrentUser isFollowing={false} onFollowToggle={() => {}} />
-
-      <div className="page-grid">
-        <section className="content-column">
-          <SurfaceCard>
-            <SectionHeader
-              eyebrow="Descricao"
-              title="Posicionamento artistico"
-              subtitle="Defina seu momento criativo, estilo e tipo de parceria procurada."
-            />
-            <textarea
-              rows={6}
-              value={descriptionDraft}
-              onChange={(event) => setDescriptionDraft(event.target.value)}
-            />
-            <button type="button" className="primary-button" onClick={handleSaveDescription}>
-              Salvar descricao
-            </button>
-          </SurfaceCard>
-
-          <SurfaceCard>
-            <SectionHeader
-              eyebrow="Projetos"
-              title="Publicacoes no ecossistema"
-              subtitle="Suas oportunidades recentes aparecem aqui como portfolio vivo."
-            />
-            {projects.length ? (
-              <div className="card-stack">
-                {projects.map((project) => (
-                  <div key={project.id} className="list-row-button list-row-button--static">
-                    <strong>{project.titulo}</strong>
-                    <span>{project.texto}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                title="Sem publicacoes ainda"
-                description="Crie uma oportunidade no hub explorar para comecar seu portfolio."
-              />
-            )}
-          </SurfaceCard>
-        </section>
-
-        <aside className="sidebar-column">
-          <SurfaceCard>
-            <SectionHeader
-              eyebrow="Foto"
-              title="Imagem de perfil"
-              subtitle="Use uma URL publica de imagem para atualizar sua apresentacao."
-            />
-            <label className="field">
-              <span>URL da imagem</span>
-              <input
-                type="url"
-                value={photoDraft}
-                onChange={(event) => setPhotoDraft(event.target.value)}
-                placeholder="https://..."
-              />
+      <SectionHeader eyebrow="Perfil musical" title={artist.stageName} subtitle="Quanto mais completo, melhor o seu matching com as vagas." />
+      {feedback ? <div className="inline-feedback">{feedback}</div> : null}
+      <div className="two-columns">
+        <SurfaceCard>
+          <form className="form-grid" onSubmit={save}>
+            <Field label="Nome artístico" value={form.stageName} onChange={set("stageName")} required />
+            <Field label="Especialidade principal" value={form.mainSpecialty} onChange={set("mainSpecialty")} required />
+            <Field label="Cidade" value={form.city} onChange={set("city")} />
+            <Field label="Disponibilidade" value={form.availability} onChange={set("availability")} required />
+            <Field label="Estilos (vírgula)" value={form.musicalStyles} onChange={set("musicalStyles")} placeholder="MPB, Samba Rock" />
+            <Field label="Instrumentos (vírgula)" value={form.instruments} onChange={set("instruments")} placeholder="Baixo, Violão" />
+            <label className="field form-grid-wide">
+              <span>Influências (vírgula)</span>
+              <input value={form.influences} onChange={(e) => set("influences")(e.target.value)} placeholder="Jorge Ben, Tim Maia" />
             </label>
-            <button type="button" className="secondary-button" onClick={handleSavePhoto}>
-              Atualizar foto
-            </button>
-          </SurfaceCard>
-
-          <SurfaceCard>
-            <SectionHeader
-              eyebrow="Links"
-              title="Presenca digital"
-              subtitle="Organize seus canais principais em um unico campo."
-            />
-            <textarea
-              rows={6}
-              value={linksDraft}
-              onChange={(event) => setLinksDraft(event.target.value)}
-              placeholder="Spotify, Instagram, SoundCloud, portfolio..."
-            />
-            <button type="button" className="secondary-button" onClick={handleSaveLinks}>
-              Atualizar links
-            </button>
-          </SurfaceCard>
-        </aside>
+            <label className="field form-grid-wide">
+              <span>Bio</span>
+              <textarea rows={3} value={form.bio} onChange={(e) => set("bio")(e.target.value)} />
+            </label>
+            <button type="submit" className="primary-button">Salvar perfil</button>
+          </form>
+        </SurfaceCard>
+        <SurfaceCard>
+          <h3>Áudio de apresentação</h3>
+          <p className="muted small">Os recrutadores ouvem este áudio no ranking de candidatos.</p>
+          {artist.audioUrl ? (
+            <>
+              <audio controls src={mediaUrl(artist.audioUrl)} className="audio" />
+              <p className="muted small">{artist.audioFilename}</p>
+            </>
+          ) : <p className="muted">Nenhum áudio enviado.</p>}
+          <input type="file" accept="audio/*" onChange={(e) => uploadAudio(e.target.files[0])} />
+        </SurfaceCard>
       </div>
     </div>
   );

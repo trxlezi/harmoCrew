@@ -4,6 +4,7 @@ import AppRouter from "./app/router";
 import "./index.css";
 import "./styles/theme.css";
 import "./styles/layout.css";
+import "./styles/features.css";
 
 export default function App() {
   return (

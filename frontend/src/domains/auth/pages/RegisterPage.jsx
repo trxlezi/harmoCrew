@@ -1,16 +1,19 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../../../services/api";
+import api, { errorMessage } from "../../../services/api";
+import { useAuth } from "../../../context/AuthContext";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     nome: "",
     email: "",
     senha: "",
     confirmSenha: "",
+    instrumento: "",
   });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,17 +45,19 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
-      await api.auth.register({
-        nome: formData.nome,
-        email: formData.email,
-        senha: formData.senha,
-      });
-      navigate("/login");
-    } catch (requestError) {
-      setError(
-        requestError?.response?.data?.error?.message ||
-          "Nao foi possivel criar sua conta."
+      // A API cria usuario + perfil de artista e ja devolve o token.
+      login(
+        await api.auth.register({
+          name: formData.nome,
+          email: formData.email,
+          password: formData.senha,
+          stageName: formData.nome,
+          mainSpecialty: formData.instrumento || "Musico",
+        })
       );
+      navigate("/perfil");
+    } catch (requestError) {
+      setError(errorMessage(requestError, "Nao foi possivel criar sua conta."));
     } finally {
       setIsSubmitting(false);
     }
@@ -84,6 +89,18 @@ export default function RegisterPage() {
               setFormData((current) => ({ ...current, nome: event.target.value }))
             }
             placeholder="Seu nome"
+          />
+        </label>
+
+        <label className="field">
+          <span>Instrumento / especialidade principal</span>
+          <input
+            type="text"
+            value={formData.instrumento}
+            onChange={(event) =>
+              setFormData((current) => ({ ...current, instrumento: event.target.value }))
+            }
+            placeholder="Ex.: Baixo, Voz, Producao"
           />
         </label>
 

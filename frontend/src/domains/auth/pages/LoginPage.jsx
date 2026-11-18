@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
-import api from "../../../services/api";
+import api, { errorMessage } from "../../../services/api";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [formData, setFormData] = useState({ email: "", senha: "" });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -16,14 +16,10 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await api.auth.login(formData);
-      login(response.data.data.token, response.data.data.user);
-      navigate("/explorar");
+      login(await api.auth.login(formData));
+      navigate("/projetos");
     } catch (requestError) {
-      setError(
-        requestError?.response?.data?.error?.message ||
-          "Nao foi possivel entrar agora."
-      );
+      setError(requestError?.response?.status === 401 ? "Email ou senha invalidos." : errorMessage(requestError, "Nao foi possivel entrar agora."));
     } finally {
       setIsSubmitting(false);
     }
@@ -39,9 +35,9 @@ export default function LoginPage() {
           mantenha conversas com quem faz sentido para a sua jornada musical.
         </p>
         <div className="hero-pills">
-          <span>Feed curado</span>
-          <span>Recrutamento musical</span>
-          <span>Conexoes reais</span>
+          <span>Matching de musicos</span>
+          <span>Versoes e decisoes</span>
+          <span>Workflow e metricas</span>
         </div>
       </div>
 
@@ -67,9 +63,9 @@ export default function LoginPage() {
           <span>Senha</span>
           <input
             type="password"
-            value={formData.senha}
+            value={formData.password}
             onChange={(event) =>
-              setFormData((current) => ({ ...current, senha: event.target.value }))
+              setFormData((current) => ({ ...current, password: event.target.value }))
             }
             placeholder="Sua senha"
           />
